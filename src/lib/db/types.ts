@@ -16,24 +16,16 @@ export interface Conversation {
   title: string;
   status: 'active' | 'archived';
   createdAt: Date;
-  updatedAt: Date;
-  lastMessageAt: Date;
-  messageCount: number;
+  messageCount?: number;
+  lastMessageAt?: Date;
 }
 
 export interface Message {
   _id: ObjectId;
   conversationId: ObjectId;
   userId: ObjectId;
-  role: 'user' | 'assistant' | 'system';
+  role: 'system' | 'user' | 'assistant' | 'tool';
   content: string;
   createdAt: Date;
-  metadata?: {
-    imageUrl?: string;
-    latex?: boolean;
-    codeSnippet?: {
-      language: string;
-      code: string;
-    };
-  };
 }
+
