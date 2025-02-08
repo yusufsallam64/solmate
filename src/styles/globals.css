@@ -1,0 +1,93 @@
+@import 'tailwindcss';
+
+@theme {
+  --font-sans: var(--font-urbanist), sans-serif;
+  --font-title: var(--font-righteous), serif;
+
+  --color-text-50: oklch(96.02% 0.003 247.86);
+  --color-text-100: oklch(92.08% 0.006 255.48);
+  --color-text-200: oklch(83.74% 0.015 260.73);
+  --color-text-300: oklch(75.45% 0.022 259.19);
+  --color-text-400: oklch(66.95% 0.03 258.37);
+  --color-text-500: oklch(58.17% 0.04 257.41);
+  --color-text-600: oklch(49.63% 0.032 258.37);
+  --color-text-700: oklch(40.66% 0.026 259.17);
+  --color-text-800: oklch(31.16% 0.02 260.64);
+  --color-text-900: oklch(21.2% 0.009 255.61);
+  --color-text-950: oklch(15.46% 0.007 270.96);
+
+  --color-background-50: oklch(96.1% 0.003 264.54);
+  --color-background-100: oklch(92.08% 0.006 255.48);
+  --color-background-200: oklch(83.98% 0.013 255.52);
+  --color-background-300: oklch(75.75% 0.018 256.3);
+  --color-background-400: oklch(67.03% 0.026 259.81);
+  --color-background-500: oklch(58.28% 0.034 258.93);
+  --color-background-600: oklch(49.7% 0.028 259.79);
+  --color-background-700: oklch(40.99% 0.021 256.37);
+  --color-background-800: oklch(31.47% 0.017 255.64);
+  --color-background-900: oklch(21.2% 0.009 255.61);
+  --color-background-950: oklch(15.41% 0.005 264.43);
+
+  --color-primary-50: oklch(95.9% 0.004 286.32);
+  --color-primary-100: oklch(91.88% 0.007 268.54);
+  --color-primary-200: oklch(83.62% 0.013 271.26);
+  --color-primary-300: oklch(75.12% 0.021 270.14);
+  --color-primary-400: oklch(66.43% 0.028 270.98);
+  --color-primary-500: oklch(57.42% 0.037 270.12);
+  --color-primary-600: oklch(49.05% 0.03 270.74);
+  --color-primary-700: oklch(40.26% 0.024 269.78);
+  --color-primary-800: oklch(30.99% 0.017 270.83);
+  --color-primary-900: oklch(20.91% 0.01 268.19);
+  --color-primary-950: oklch(15.41% 0.005 264.43);
+
+  --color-secondary-50: oklch(95.9% 0.004 286.32);
+  --color-secondary-100: oklch(91.56% 0.009 292.78);
+  --color-secondary-200: oklch(82.93% 0.019 292.54);
+  --color-secondary-300: oklch(74.33% 0.027 292.97);
+  --color-secondary-400: oklch(65.24% 0.039 292.35);
+  --color-secondary-500: oklch(55.85% 0.051 291.61);
+  --color-secondary-600: oklch(47.77% 0.042 291.79);
+  --color-secondary-700: oklch(39.34% 0.032 292.1);
+  --color-secondary-800: oklch(30.12% 0.025 291.36);
+  --color-secondary-900: oklch(20.46% 0.014 291.68);
+  --color-secondary-950: oklch(15.22% 0.007 300.8);
+
+  --color-accent-50: oklch(94.9% 0.021 268.43);
+  --color-accent-100: oklch(89.91% 0.043 264.99);
+  --color-accent-200: oklch(79.68% 0.088 265.74);
+  --color-accent-300: oklch(69.79% 0.136 264.44);
+  --color-accent-400: oklch(60.45% 0.184 263.21);
+  --color-accent-500: oklch(52.23% 0.227 262.68);
+  --color-accent-600: oklch(44.55% 0.191 262.67);
+  --color-accent-700: oklch(36.46% 0.151 262.76);
+  --color-accent-800: oklch(27.93% 0.109 263.03);
+  --color-accent-900: oklch(19.02% 0.062 261.39);
+  --color-accent-950: oklch(13.97% 0.035 256.22);
+
+  --animate-pulse-slow: pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+/*
+  The default border color has changed to `currentColor` in Tailwind CSS v4,
+  so we've added these compatibility styles to make sure everything still
+  looks the same as it did with Tailwind CSS v3.
+
+  If we ever want to remove these styles, we need to add an explicit border
+  color utility to any element that depends on these defaults.
+*/
+@layer base {
+  *,
+  ::after,
+  ::before,
+  ::backdrop,
+  ::file-selector-button {
+    border-color: var(--color-gray-200, currentColor);
+  }
+}
+
+:root { 
+    font-family: 'Lexend', sans-serif;
+}
+html, body {
+    background-color: rgb(20, 20, 20);
+}
