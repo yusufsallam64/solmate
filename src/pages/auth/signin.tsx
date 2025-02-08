@@ -4,7 +4,7 @@ import { getServerSession } from "next-auth/next";
 import { authOptions } from "../api/auth/[...nextauth]";
 import AuthProviderBlock from "@/lib/components/auth/AuthProviderBlock";
 import Link from 'next/link';
-import PhantomConnect from "@/lib/components/PhantomConnect";
+import PhantomConnect from "@/lib/components/phantom/PhantomConnect";
 
 const SignIn = ({
     providers

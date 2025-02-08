@@ -3,7 +3,7 @@ import { getProviders } from "next-auth/react";
 import Link from 'next/link';
 import { X } from 'lucide-react';
 import AuthProviderBlock from "@/lib/components/auth/AuthProviderBlock";
-import PhantomConnect from '../PhantomConnect';
+import PhantomConnect from '../phantom/PhantomConnect';
 
 interface SignInModalProps {
   isOpen: boolean;

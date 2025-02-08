@@ -9,7 +9,7 @@ import { ArrowLeft, LoaderCircle } from 'lucide-react';
 import { DatabaseService } from '@/lib/db/service';
 import clsx from "clsx";
 import router from "next/router";
-import PhantomConnect from "@/lib/components/PhantomConnect";
+import PhantomConnect from "@/lib/components/phantom/PhantomConnect";
 
 const SignUp = ({
     providers,
