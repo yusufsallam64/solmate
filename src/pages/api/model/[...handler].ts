@@ -187,7 +187,7 @@ export default async function handler(
 
     // Handle tool calls if present
     if (initialResponse.tool_calls?.length) {
-      const toolResults = await handleToolCalls(initialResponse.tool_calls);
+      const toolResults = await handleToolCalls(initialResponse.tool_calls, runModel);
       
       // Store tool results as message
       await storeMessage(

@@ -1,6 +1,5 @@
 import { useRef, useEffect } from 'react';
 import { Message, Conversation } from "@/lib/db/types";
-import Latex from "react-latex-next";
 import MessageInput from './MessageInput';
 import { Plus } from 'lucide-react';
 
@@ -65,7 +64,7 @@ export const ChatInterface = ({
                     {msg.role === 'user' ? 'You' : 'Assistant'}
                   </p>
                   <p className="text-primary-100 whitespace-pre-wrap leading-relaxed">
-                    <Latex>{msg.content}</Latex>
+                    {msg.content}
                   </p>
                 </div>
               ))

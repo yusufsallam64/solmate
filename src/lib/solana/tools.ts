@@ -1,28 +1,26 @@
 // tools.ts
 import { Connection, PublicKey, LAMPORTS_PER_SOL } from '@solana/web3.js';
 import { TOKEN_PROGRAM_ID } from '@solana/spl-token';
+import { formatBalanceResponse, ModelFunction, BalanceToolResult } from './natural';
 
 export type ToolDefinition = {
-  type: 'function';
-  function: {
-    name: string;
-    description: string;
-    parameters: {
-      type: 'object';
-      properties: Record<string, {
-        type: string;
-        description: string;
-      }>;
-      required?: string[];
-    };
-  };
-};
+   type: 'function';
+   function: {
+     name: string;
+     description: string;
+     parameters: {
+       type: 'object';
+       properties: Record<string, {
+         type: string;
+         description: string;
+       }>;
+       required?: string[];
+     };
+   };
+ };
+ 
+ export type ToolCallResult = BalanceToolResult;
 
-export type ToolCallResult = {
-  tool: string;
-  result?: string;
-  error?: string;
-};
 
 const SOLANA_RPC_URL = process.env.NEXT_PUBLIC_SOLANA_RPC_URL || 'https://api.mainnet-beta.solana.com';
 
@@ -126,56 +124,69 @@ async function getTokenBalances(address: string) {
   }
 }
 
-export async function handleToolCalls(toolCalls: Array<{ name: string; arguments: Record<string, any> }>): Promise<ToolCallResult[]> {
-  if (!toolCalls?.length) return [];
-
-  const results: ToolCallResult[] = [];
-  
-  for (const toolCall of toolCalls) {
-    try {
-      switch (toolCall.name) {
-        case 'checkBalance':
-          const { address } = toolCall.arguments;
-          
-          if (!address) {
-            throw new Error('Address is required');
-          }
-
-          try {
-            new PublicKey(address);
-          } catch (e) {
-            throw new Error('Invalid Solana address');
-          }
-
-          const balances = await getTokenBalances(address);
-          
-          const formattedResponse = `
-Wallet Assets:
-${balances.assets.map(asset => 
-  `${asset.token}: ${asset.balance.toFixed(4)} (${asset.price ? `$${asset.price.toFixed(2)} per token, ` : ''}$${asset.value.toFixed(2)})`
-).join('\n')}
-
-Total Portfolio Value: $${balances.totalValue.toFixed(2)}`;
-
-          results.push({
-            tool: toolCall.name,
-            result: formattedResponse
-          });
-          break;
-
-        default:
-          results.push({
-            tool: toolCall.name,
-            error: 'Unknown tool'
-          });
-      }
-    } catch (error) {
-      results.push({
-        tool: toolCall.name,
-        error: error instanceof Error ? error.message : 'Unknown error'
-      });
-    }
-  }
-
-  return results;
-}
+export async function handleToolCalls(
+   toolCalls: Array<{ name: string; arguments: Record<string, any> }>,
+   modelFunction: ModelFunction
+ ): Promise<string> {
+   if (!toolCalls?.length) return '';
+ 
+   const results: ToolCallResult[] = [];
+   
+   for (const toolCall of toolCalls) {
+     try {
+       switch (toolCall.name) {
+         case 'checkBalance':
+           const { address } = toolCall.arguments;
+           
+           if (!address) {
+             throw new Error('Address is required');
+           }
+ 
+           try {
+             new PublicKey(address);
+           } catch (e) {
+             throw new Error('Invalid Solana address');
+           }
+ 
+           const balances = await getTokenBalances(address);
+           
+           const formattedBalance = `
+ Wallet Assets:
+ ${balances.assets.map(asset => 
+   `${asset.token}: ${asset.balance.toFixed(4)} ($${asset.price.toFixed(2)} per token, $${asset.value.toFixed(2)})`
+ ).join('\n')}
+ 
+ Total Portfolio Value: $${balances.totalValue.toFixed(2)}`;
+ 
+           results.push({
+             tool: toolCall.name,
+             result: formattedBalance
+           });
+           break;
+ 
+         default:
+           results.push({
+             tool: toolCall.name,
+             error: 'Unknown tool'
+           });
+       }
+     } catch (error) {
+       results.push({
+         tool: toolCall.name,
+         error: error instanceof Error ? error.message : 'Unknown error'
+       });
+     }
+   }
+ 
+   // Format the response using the natural language formatter
+   try {
+     const naturalResponse = await formatBalanceResponse(results, modelFunction);
+     return naturalResponse;
+   } catch (error) {
+     console.error('Error formatting natural response:', error);
+     // Fallback to original response if natural formatting fails
+     return results[0]?.result || 'Unable to fetch balance information';
+   }
+ }
+ 
+ 
