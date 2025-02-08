@@ -57,6 +57,7 @@ const Header: React.FC<HeaderProps> = ({
               </h2>
             )}
           </div>
+          </div>
         </div>
 
         <div className="flex items-center gap-4">
