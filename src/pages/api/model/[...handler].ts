@@ -1,3 +1,4 @@
+// [...handler].ts
 import type { NextApiRequest, NextApiResponse } from "next";
 import { DatabaseService } from "@/lib/db/service";
 import { ObjectId } from 'mongodb';
@@ -8,8 +9,17 @@ if (!process.env.CF_API_TOKEN || !process.env.CF_ACCOUNT_ID) {
   throw new Error("Missing required environment variables: CF_API_TOKEN or CF_ACCOUNT_ID");
 }
 
+async function storeMessage(conversationId: ObjectId, userId: string, role: string, content: string) {
+  return DatabaseService.createMessage({
+    conversationId,
+    userId: new ObjectId(userId),
+    role,
+    content
+  });
+}
+
 type ModelResponse = {
-  response: string;
+  response: string | null;
   usage: {
     prompt_tokens: number;
     completion_tokens: number;
@@ -21,51 +31,83 @@ type ModelResponse = {
   }[];
 };
 
-async function runModel(messages: any[], tools = AVAILABLE_TOOLS) {
-  const response = await fetch(
-    `https://api.cloudflare.com/client/v4/accounts/${process.env.CF_ACCOUNT_ID}/ai/run/@cf/meta/llama-3.3-70b-instruct-fp8-fast`,
-    {
-      headers: { 
-        Authorization: `Bearer ${process.env.CF_API_TOKEN}`,
-        'Content-Type': 'application/json'
-      },
-      method: "POST",
-      body: JSON.stringify({
-        messages,
-        tools,
-        temperature: 0.7,
-        max_tokens: 1024
-      })
-    }
-  );
-
-  const result = await response.json();
-  
-  if (!result.success) {
-    throw new Error(result.errors?.[0]?.message || 'Cloudflare API request failed');
+function validateMessage(message: any) {
+  if (!message.role) {
+    throw new Error(`Message missing role: ${JSON.stringify(message)}`);
   }
+  if (!['user', 'assistant', 'system', 'tool'].includes(message.role)) {
+    throw new Error(`Invalid role: ${message.role}`);
+  }
+  if (typeof message.content !== 'string') {
+    throw new Error(`Content must be string, got: ${typeof message.content}`);
+  }
+  return {
+    role: message.role,
+    content: message.content
+  };
+}
 
-  return result.result as ModelResponse;
+async function runModel(messages: any[], tools = AVAILABLE_TOOLS) {
+  try {
+    // Only validate messages that will be sent to the model
+    const validatedMessages = messages
+      .filter(msg => msg.content != null)  // Skip messages with null content
+      .map(validateMessage);
+    
+    const payload = {
+      messages: validatedMessages.map(m => ({
+        role: m.role === 'system' ? 'assistant' : m.role,
+        content: m.content
+      })),
+      stream: false
+    };
+
+    // Add tools if provided
+    if (tools && tools.length > 0) {
+      payload['tools'] = tools;
+    }
+
+    console.log('Sending payload:', JSON.stringify(payload, null, 2));
+
+    const response = await fetch(
+      `https://api.cloudflare.com/client/v4/accounts/${process.env.CF_ACCOUNT_ID}/ai/run/@cf/meta/llama-3.3-70b-instruct-fp8-fast`,
+      {
+        headers: { 
+          Authorization: `Bearer ${process.env.CF_API_TOKEN}`,
+          'Content-Type': 'application/json'
+        },
+        method: "POST",
+        body: JSON.stringify(payload)
+      }
+    );
+
+    const result = await response.json();
+    console.log('API Response:', JSON.stringify(result, null, 2));
+    
+    if (!result.success) {
+      console.error('Full API Response:', result);
+      throw new Error(result.errors?.[0]?.message || 'Cloudflare API request failed');
+    }
+
+    return result.result as ModelResponse;
+  } catch (error) {
+    console.error('Error in runModel:', error);
+    throw error;
+  }
 }
 
 async function generateTitle(userMessage: string): Promise<string> {
-  const titlePrompt = `Based on this initial message, generate a short, descriptive title (max 6 words): "${userMessage}"`;
-  
-  const result = await runModel([
-    { role: 'system', content: SYSTEM_PROMPT },
-    { role: 'user', content: titlePrompt }
-  ]);
-
-  return result.response.replace(/["']/g, '').trim();
-}
-
-async function storeMessage(conversationId: ObjectId, userId: string, role: string, content: string) {
-  return DatabaseService.createMessage({
-    conversationId,
-    userId: new ObjectId(userId),
-    role,
-    content
-  });
+  try {
+    const titlePrompt = `Based on this initial message, generate a short, descriptive title (max 6 words): "${userMessage}"`;
+    const result = await runModel([
+      { role: 'system', content: SYSTEM_PROMPT },
+      { role: 'user', content: titlePrompt }
+    ]);
+    return result?.response?.replace(/["']/g, '').trim() || 'New Conversation';
+  } catch (error) {
+    console.error('Error generating title:', error);
+    return 'New Conversation';
+  }
 }
 
 export default async function handler(
@@ -82,20 +124,29 @@ export default async function handler(
     return res.status(401).json({ error: 'Unauthorized' });
   }
 
-  const { interactionMessages, conversationId } = req.body;
+  const { interactionMessages, conversationId, walletAddress } = req.body;
   if (!interactionMessages?.length) {
     return res.status(400).json({ error: 'Messages are required' });
   }
 
   try {
     const fullMessages = [
-      { role: 'system', content: SYSTEM_PROMPT },
-      ...interactionMessages
+      { 
+        role: 'system', 
+        content: SYSTEM_PROMPT 
+      },
+      ...interactionMessages.map(msg => ({
+        role: msg.role,
+        content: String(msg.content)
+      })),
+      { 
+        role: 'system', 
+        content: `Connected wallet address: ${walletAddress}` 
+      }
     ];
 
     let currentConversationId: ObjectId;
 
-    // Handle conversation creation or verification
     if (!conversationId) {
       const title = await generateTitle(interactionMessages[0].content);
       currentConversationId = await DatabaseService.createConversation({
@@ -122,13 +173,15 @@ export default async function handler(
     // Get initial assistant response
     const initialResponse = await runModel(fullMessages);
 
-    // Store assistant's initial response
-    await storeMessage(
-      currentConversationId,
-      userId,
-      'assistant',
-      initialResponse.response
-    );
+    // Only store assistant's initial response if it's not null
+    if (initialResponse.response) {
+      await storeMessage(
+        currentConversationId,
+        userId,
+        'assistant',
+        initialResponse.response
+      );
+    }
 
     let finalResponse = initialResponse;
 
@@ -147,19 +200,21 @@ export default async function handler(
       // Get final response after tool execution
       const updatedMessages = [
         ...fullMessages,
-        { role: 'assistant', content: initialResponse.response },
+        ...(initialResponse.response ? [{ role: 'assistant', content: initialResponse.response }] : []),
         { role: 'tool', content: JSON.stringify(toolResults) }
       ];
 
       finalResponse = await runModel(updatedMessages);
 
-      // Store assistant's final response after tool execution
-      await storeMessage(
-        currentConversationId,
-        userId,
-        'assistant',
-        finalResponse.response
-      );
+      // Store assistant's final response after tool execution if not null
+      if (finalResponse.response) {
+        await storeMessage(
+          currentConversationId,
+          userId,
+          'assistant',
+          finalResponse.response
+        );
+      }
     }
 
     // Get all messages for the conversation
@@ -167,7 +222,7 @@ export default async function handler(
     const conversation = await DatabaseService.getConversation(currentConversationId);
 
     return res.status(200).json({
-      response: finalResponse.response,
+      response: finalResponse.response || '',  // Ensure we always return a string
       messages: storedMessages,
       conversation,
       usage: finalResponse.usage

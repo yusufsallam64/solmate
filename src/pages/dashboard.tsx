@@ -7,6 +7,7 @@ import { GetServerSidePropsContext } from "next";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/pages/api/auth/[...nextauth]";
 import { DatabaseService } from "@/lib/db/service";
+import { useSession } from "next-auth/react";
 
 interface MessageData {
   role: 'user' | 'assistant' | 'system';
@@ -20,6 +21,8 @@ export default function Dashboard() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [currentConversation, setCurrentConversation] = useState<Conversation | undefined>(undefined);
   const [conversations, setConversations] = useState<Conversation[]>([]);
+  const { data: session } = useSession();
+  const walletAddress = session?.user.walletAddress;  
 
   // Load conversations on mount
   useEffect(() => {
@@ -92,7 +95,8 @@ export default function Dashboard() {
           interactionMessages: currentConversation 
             ? [...messages, truncatedUserMessage] 
             : [truncatedUserMessage],
-          conversationId: currentConversation?._id
+          conversationId: currentConversation?._id,
+          walletAddress
         }),
       });
   
