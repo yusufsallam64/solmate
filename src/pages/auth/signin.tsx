@@ -4,7 +4,6 @@ import { getServerSession } from "next-auth/next";
 import { authOptions } from "../api/auth/[...nextauth]";
 import AuthProviderBlock from "@/lib/components/auth/AuthProviderBlock";
 import Link from 'next/link';
-import { DatabaseService } from '@/lib/db/service';
 
 const SignIn = ({
     providers
@@ -75,22 +74,9 @@ export async function getServerSideProps(context: GetServerSidePropsContext) {
     const session = await getServerSession(context.req, context.res, authOptions);
     
     if (session?.user?.email) {
-        const user = await DatabaseService.getUserByEmail(session.user.email);
-        const hasValidSubscription = await DatabaseService.checkUserSubscription(user!._id);
-        
-        if (hasValidSubscription) {
-            return {
-                redirect: {
-                    destination: '/dashboard',
-                    permanent: false
-                }
-            };
-        }
-
-        // If user is signed in but no subscription, redirect to signup to complete subscription
         return {
             redirect: {
-                destination: '/auth/signup',
+                destination: '/dashboard',
                 permanent: false
             }
         };

@@ -297,17 +297,5 @@ export async function getServerSideProps(context: GetServerSidePropsContext) {
     };
   }
 
-  const user = await DatabaseService.getUserByEmail(session.user.email);
-  const hasValidSubscription = await DatabaseService.checkUserSubscription(user!._id);
-
-  if (!hasValidSubscription) {
-    return {
-      redirect: {
-        destination: '/auth/signup',
-        permanent: false
-      }
-    };
-  }
-
   return { props: {} };
 }

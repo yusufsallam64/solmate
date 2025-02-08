@@ -27,7 +27,7 @@ export default function Splash() {
             <img src="/logo-dark.png" alt="Logo" className="h-8 w-auto" />
             <h1 className="text-2xl font-bold">
               <span className="bg-gradient-to-r from-accent-400 to-accent-500 text-transparent bg-clip-text font-title">
-                InsightfullyStudy
+                Solana Bot
               </span>
             </h1>
           </div>
@@ -48,7 +48,7 @@ export default function Splash() {
           </div>
         </div>
       </header>
-      
+
       <SignInModal
         isOpen={isSignInModalOpen}
         onClose={() => setIsSignInModalOpen(false)}

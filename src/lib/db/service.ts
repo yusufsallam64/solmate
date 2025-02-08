@@ -43,7 +43,6 @@ export class DatabaseService {
       problemCount: 0,
       lastAccessedAt: now,
       _id: new ObjectId(),
-      icon: data.icon || "default"
     });
   
     return result.insertedId;
@@ -255,51 +254,6 @@ export class DatabaseService {
     );
   }
 
-  //Stripe
-
-  static async getUserByStripeId(stripeCustomerId: string): Promise<User | null> {
-    const users = await getCollection<User>('users');
-    return users.findOne({ stripeCustomerId });
-  }
-
-  static async updateUserSubscription(
-    userId: ObjectId,
-    data: {
-      subscriptionId?: string;
-      status?: string;
-      currentPeriodEnd?: Date;
-      trialEnd?: Date | null;
-      cancelAtPeriodEnd?: boolean;
-    }
-  ): Promise<void> {
-    const users = await getCollection<User>('users');
-    console.log('Updating subscription for user:', userId, 'with data:', data); // Add this log
-
-    await users.updateOne(
-      { _id: userId },
-      {
-        $set: {
-          subscriptionId: data.subscriptionId,
-          subscriptionStatus: data.status as 'active' | 'canceled' | 'past_due' | 'trialing',
-          subscriptionPeriodEnd: data.currentPeriodEnd,
-          trialEnd: data.trialEnd,
-          updatedAt: new Date(), 
-          cancelAtPeriodEnd: data.cancelAtPeriodEnd
-        }
-      }
-    );
-  }
-
-  static async checkUserSubscription(userId: ObjectId): Promise<boolean> {
-    const user = await this.getUserById(userId);
-    if (!user || !user.subscriptionStatus || !user.subscriptionPeriodEnd) return false;
-
-    return (
-      ['active', 'trialing'].includes(user.subscriptionStatus) ||
-      user.subscriptionPeriodEnd > new Date()
-    );
-  }
-
   static async updateUser(userId: ObjectId, data: Partial<User>): Promise<void> {
     const users = await getCollection<User>('users');
     await users.updateOne(
@@ -312,17 +266,4 @@ export class DatabaseService {
       }
     );
   }
-
-  static async getUserSubscription(userId: ObjectId) {
-    const user = await this.getUserById(userId);
-    if (!user) return null;
-    
-    return {
-      status: user.subscriptionStatus,
-      currentPeriodEnd: user.subscriptionPeriodEnd,
-      trialEnd: user.trialEnd,
-      cancelAtPeriodEnd: user.cancelAtPeriodEnd
-    };
-  }
-
 }

@@ -1,12 +1,12 @@
 {
-  "name": "insightfully-study",
+"name": "solana-bot",
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "devt": "concurrently \"stripe listen --forward-to localhost:3000/api/stripe/webhook\" \"next dev --turbopack\"",
-    "dev": "concurrently \"stripe listen --forward-to localhost:3000/api/stripe/webhook\" \"next dev\"",
+    "devt": "next dev --turbopack",
+    "dev": "next dev",
     "build": "next build",
-    "start": "concurrently \"stripe listen --forward-to localhost:3000/api/stripe/webhook\" \"next start\"",
+    "start": "next start",
     "lint": "next lint"
   },
   "dependencies": {
@@ -29,7 +29,6 @@
     "react-dom": "^18.3.1",
     "react-hot-toast": "^2.4.1",
     "react-latex-next": "^3.0.0",
-    "stripe": "^17.4.0",
     "three": "^0.170.0"
   },
   "devDependencies": {

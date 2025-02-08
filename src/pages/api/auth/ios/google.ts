@@ -66,10 +66,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                 createdAt: user.createdAt,
                 updatedAt: user.updatedAt,
                 lastLoginAt: user.lastLoginAt,
-                subscriptionStatus: user.subscriptionStatus,
-                subscriptionPeriodEnd: user.subscriptionPeriodEnd,
-                trialEnd: user.trialEnd,
-                cancelAtPeriodEnd: user.cancelAtPeriodEnd
             },
             session: {
                 accessToken,

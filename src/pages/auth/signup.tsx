@@ -17,21 +17,6 @@ const SignUp = ({
     const { data: session } = useSession();
     const [isLoading, setIsLoading] = useState(false);
 
-    const handleSubscribe = async () => {
-        setIsLoading(true);
-        try {
-            const response = await fetch('/api/stripe/create-checkout', {
-                method: 'POST',
-            });
-            const data = await response.json();
-            window.location.href = data.checkoutUrl;
-        } catch (error) {
-            console.error('Error:', error);
-        } finally {
-            setIsLoading(false);
-        }
-    };
-
     return (
         <div className="min-h-screen w-full relative overflow-hidden bg-linear-to-br from-primary-950 to-background-950">
             <div className="absolute inset-0 overflow-hidden">
@@ -95,40 +80,6 @@ const SignUp = ({
                                 </p>
                             )}
                         </div>
-
-                        {/* Step 2: Subscribe */}
-                        <div className={clsx(`p-6 bg-background-800/40 backdrop-blur-lg rounded-2xl border`, !session ? 'border-primary-900/50 opacity-50' : 'border-accent-500/50')}>
-                            <div className="flex items-center mb-4">
-                                <div className="flex items-center justify-center w-8 h-8 rounded-full bg-accent-500 text-white font-bold mr-3">
-                                    2
-                                </div>
-                                <h2 className="text-xl font-semibold text-white">Start Free Trial</h2>
-                            </div>
-                            <div className="space-y-4">
-                                <div className="flex items-center text-primary-100">
-                                    <p>7-day free trial, then $10/month</p>
-                                </div>
-                                <button
-                                    onClick={handleSubscribe}
-                                    disabled={isLoading || !session}
-                                    className={`w-full bg-accent-500 text-white py-3 px-6 rounded-xl
-                                            hover:bg-accent-600 transition-all duration-200 flex items-center justify-center hover:scale-[102%]
-                                            ${!session ? 'opacity-50 cursor-not-allowed' : ''}`}
-                                >
-                                    {isLoading ? (
-                                        <>
-                                            <LoaderCircle className="animate-spin mr-2" />
-                                            Processing...
-                                        </>
-                                    ) : (
-                                        'Continue to Free Trial'
-                                    )}
-                                </button>
-                                <p className="text-sm text-primary-300 opacity-50 text-center">
-                                    Cancel anytime during trial
-                                </p>
-                            </div>
-                        </div>
                     </div>
 
                     <div className="mt-6 text-center text-sm text-primary-200">
@@ -149,12 +100,6 @@ const SignUp = ({
                            <ArrowLeft className="w-5 h-5 group-hover:-translate-x-1 my-auto transition-transform duration-300" />
                            <p>Back to Home</p>
                         </button>
-                        {/* <Link 
-                            href="/"
-                            className="text-primary-200 hover:text-primary-100 transition-colors duration-200"
-                        >
-                            ← Back to home
-                        </Link> */}
                     </div>
                 </div>
             </div>
@@ -166,37 +111,12 @@ export async function getServerSideProps(context: GetServerSidePropsContext) {
     const session = await getServerSession(context.req, context.res, authOptions);
     
     if (session?.user?.email) {
-        const user = await DatabaseService.getUserByEmail(session.user.email);
-        const hasValidSubscription = await DatabaseService.checkUserSubscription(user!._id);
-
-        // If they have a valid subscription, redirect to dashboard
-        if (hasValidSubscription) {
-            return {
-                redirect: {
-                    destination: '/dashboard',
-                    permanent: false
-                }
-            };
-        }
-        
-        // stripe successful payment
-        if (context.query.session_id) {
-            await new Promise(resolve => setTimeout(resolve, 5000));
-            
-            // retry logic
-            for (let i = 0; i < 3; i++) {
-                const updatedSubscription = await DatabaseService.checkUserSubscription(user!._id);
-                if (updatedSubscription) {
-                    return {
-                        redirect: {
-                            destination: '/dashboard',
-                            permanent: false
-                        }
-                    };
-                }
-                await new Promise(resolve => setTimeout(resolve, 2000));
+        return {
+            redirect: {
+                destination: '/dashboard',
+                permanent: false
             }
-        }
+        };
     }
 
     const providers = await getProviders();
@@ -215,7 +135,6 @@ export async function getServerSideProps(context: GetServerSidePropsContext) {
     return {
         props: { 
             providers: providers ?? [],
-            stripeSession: context.query.session_id || null,
             error: error ? getErrorMessage(error as string) : null
         }
     };

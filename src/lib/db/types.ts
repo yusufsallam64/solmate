@@ -8,13 +8,6 @@ export interface User {
   createdAt: Date;
   updatedAt: Date;
   lastLoginAt: Date;
-  // Stripe
-  stripeCustomerId?: string;
-  subscriptionId?: string;
-  subscriptionStatus?: 'active' | 'canceled' | 'past_due' | 'trialing';
-  subscriptionPeriodEnd?: Date;
-  trialEnd?: Date | null;
-  cancelAtPeriodEnd?: boolean;
 }
 
 export type SubjectIcon = 
