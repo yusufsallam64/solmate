@@ -1,4 +1,5 @@
-import { PublicKey } from '@solana/web3.js';
+// tools.ts
+import { Connection, PublicKey, Transaction, SystemProgram, LAMPORTS_PER_SOL, Commitment, clusterApiUrl } from '@solana/web3.js';
 
 export type ToolDefinition = {
   type: 'function';
@@ -27,7 +28,7 @@ export const AVAILABLE_TOOLS: ToolDefinition[] = [
     type: 'function',
     function: {
       name: 'transferSol',
-      description: 'Transfer SOL from the bot wallet to a specified address',
+      description: 'Transfer SOL from the wallet to a specified address',
       parameters: {
         type: 'object',
         properties: {
@@ -38,38 +39,17 @@ export const AVAILABLE_TOOLS: ToolDefinition[] = [
           amount: {
             type: 'number',
             description: 'Amount of SOL to transfer'
+          },
+          network: {
+            type: 'string',
+            description: 'Network to use: mainnet, devnet, or testnet'
           }
         },
         required: ['recipient', 'amount']
       }
     }
-  },
-  {
-    type: 'function',
-    function: {
-      name: 'checkBalance',
-      description: 'Check SOL balance of the bot wallet or a specified address',
-      parameters: {
-        type: 'object',
-        properties: {
-          address: {
-            type: 'string',
-            description: 'Optional Solana wallet address to check. If not provided, checks bot wallet balance'
-          }
-        }
-      }
-    }
   }
 ];
-
-export const SYSTEM_PROMPT = `You are a Solana wallet assistant with access to blockchain functionality. 
-You can help users interact with their Solana wallet and execute transactions. 
-Always verify transaction details and amounts before proceeding.
-When handling financial transactions:
-1. Confirm the details with the user
-2. Check if the amount is reasonable
-3. Provide transaction details before execution
-4. Warn about any potential risks`;
 
 export async function handleToolCalls(toolCalls: Array<{ name: string; arguments: Record<string, any> }>): Promise<ToolCallResult[]> {
   if (!toolCalls?.length) return [];
@@ -79,45 +59,60 @@ export async function handleToolCalls(toolCalls: Array<{ name: string; arguments
   for (const toolCall of toolCalls) {
     try {
       switch (toolCall.name) {
-        case 'transferSol':
-          const { recipient, amount } = toolCall.arguments;
+        case 'transferSol': {
+          const { recipient, amount, network = 'devnet' } = toolCall.arguments;
           
-          // Validate address
           try {
             new PublicKey(recipient);
           } catch (e) {
             throw new Error('Invalid Solana address');
           }
 
-          // Validate amount
-          if (amount <= 0) {
-            throw new Error('Amount must be greater than 0');
-          }
+          if (amount <= 0) throw new Error('Amount must be greater than 0');
 
-          // TODO: Implement actual transfer logic
-          results.push({
-            tool: toolCall.name,
-            result: `Simulated: Transfer of ${amount} SOL to ${recipient}`
-          });
-          break;
+          const phantom = (window as any).solana;
+          if (!phantom) throw new Error('Phantom wallet is not available');
 
-        case 'checkBalance':
-          const { address } = toolCall.arguments;
+          const connection = await phantom.connect();
+          const senderPublicKey = connection.publicKey.toString();
+
+          const rpcConnection = new Connection(
+            network === 'mainnet' 
+              ? (process.env.NEXT_PUBLIC_SOLANA_RPC || 'https://api.mainnet-beta.solana.com')
+              : clusterApiUrl(network as 'devnet' | 'testnet'),
+            'confirmed' as Commitment
+          );
+
+          const { blockhash, lastValidBlockHeight } = await rpcConnection.getLatestBlockhash();
           
-          if (address) {
-            try {
-              new PublicKey(address);
-            } catch (e) {
-              throw new Error('Invalid Solana address');
-            }
-          }
+          const lamports = amount * LAMPORTS_PER_SOL;
+          const transaction = new Transaction().add(
+            SystemProgram.transfer({
+              fromPubkey: new PublicKey(senderPublicKey),
+              toPubkey: new PublicKey(recipient),
+              lamports,
+            })
+          );
 
-          // TODO: Implement actual balance check
+          transaction.recentBlockhash = blockhash;
+          transaction.feePayer = new PublicKey(senderPublicKey);
+
+          const signedTx = await phantom.signTransaction(transaction);
+          const rawTransaction = signedTx.serialize();
+          const txSignature = await rpcConnection.sendRawTransaction(rawTransaction);
+
+          await rpcConnection.confirmTransaction({
+            signature: txSignature,
+            blockhash,
+            lastValidBlockHeight
+          }, 'confirmed');
+
           results.push({
             tool: toolCall.name,
-            result: `Simulated: Balance check for ${address || 'bot wallet'}`
+            result: `Successfully transferred ${amount} SOL to ${recipient}. Transaction ID: ${txSignature}`
           });
           break;
+        }
 
         default:
           results.push({
