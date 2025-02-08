@@ -35,7 +35,7 @@ const SignUp = ({
                         </svg>
                         <h1 className="text-3xl font-bold">
                             <span className="bg-linear-to-r from-accent-400 via-accent-500 to-secondary-500 text-transparent bg-clip-text">
-                                Welcome to Insightfully
+                                Welcome to CryptoChat.AI
                             </span>
                         </h1>
                     </div>

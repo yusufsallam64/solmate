@@ -82,17 +82,6 @@ const SignInModal: React.FC<SignInModalProps> = ({ isOpen, onClose }) => {
               <div className="w-full space-y-3">
                 <PhantomConnect />
               </div>
-
-              <div className="text-center text-sm text-primary-200">
-                New to Insightfully?{' '}
-                <Link 
-                  href="/auth/signup" 
-                  className="text-accent-400 hover:text-accent-500 underline"
-                  onClick={onClose}
-                >
-                  Create an account
-                </Link>
-              </div>
             </div>
           </div>
         </div>

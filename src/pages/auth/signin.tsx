@@ -41,14 +41,7 @@ const SignIn = ({
                             <PhantomConnect />
                         </div>
                     </div>
-
-                    <div className="mt-6 text-center text-sm text-primary-200">
-                        New to Insightfully?{' '}
-                        <Link href="/auth/signup" className="text-accent-400 hover:text-accent-500 underline">
-                            Create an account
-                        </Link>
-                    </div>
-
+                    
                     <div className="mt-6 text-center">
                         <Link 
                             href="/"
