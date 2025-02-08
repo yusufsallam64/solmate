@@ -4,6 +4,7 @@ import { getServerSession } from "next-auth/next";
 import { authOptions } from "../api/auth/[...nextauth]";
 import AuthProviderBlock from "@/lib/components/auth/AuthProviderBlock";
 import Link from 'next/link';
+import PhantomConnect from "@/lib/components/PhantomConnect";
 
 const SignIn = ({
     providers
@@ -37,15 +38,7 @@ const SignIn = ({
                 <div className="w-full max-w-md">
                     <div className="p-6 bg-background-800/40 backdrop-blur-lg rounded-2xl border border-primary-900/50">
                         <div className="space-y-3">
-                            {Object.values(providers).map((provider) => (
-                                <div key={provider.id}>
-                                    <AuthProviderBlock
-                                        providerName={provider.name}
-                                        iconLink={`/providers/${provider.id}.png`}
-                                        provider={provider}
-                                    />
-                                </div>
-                            ))}
+                            <PhantomConnect />
                         </div>
                     </div>
 

@@ -6,6 +6,7 @@ import jwt from 'jsonwebtoken'
 import { clientPromise } from "@/lib/db/client"
 import { ObjectId } from "mongodb"
 import { DatabaseService } from "@/lib/db/service"
+import PhantomProvider from "@/lib/components/auth/PhantomProvider";
 
 if (!process.env.GOOGLE_CLIENT_ID || !process.env.GOOGLE_CLIENT_SECRET || !process.env.JWT_SECRET) {
     throw new Error("Missing required environment variables")
@@ -26,44 +27,52 @@ export const verifyToken = (token: string): { userId: string } => {
 export const authOptions: AuthOptions = {
     providers: [
         GoogleProvider({
-            clientId: process.env.GOOGLE_CLIENT_ID,
-            clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+          clientId: process.env.GOOGLE_CLIENT_ID,
+          clientSecret: process.env.GOOGLE_CLIENT_SECRET,
         }),
+        PhantomProvider(),
     ],
     adapter: MongoDBAdapter(clientPromise) as Adapter,
     pages: {
         signIn: "/auth/signup",
     },
     callbacks: {
-        async signIn({ user, account, profile }) {
-            try {
-                const existingUser = await DatabaseService.getUserByEmail(user.email as string)
-                const now = new Date()
-
-                if (!existingUser) {
-                    const userDoc = {
-                        email: user.email,
-                        name: user.name,
-                        imageUrl: user.image,
-                        createdAt: now,
-                        updatedAt: now,
-                        lastLoginAt: now,
-                    }
-                    const client = await clientPromise
-                    const collection = client.db("DB").collection('users')
-                    await collection.insertOne({
-                        ...userDoc,
-                        _id: new ObjectId()
-                    })
-                } else {
-                    await DatabaseService.updateUserLastLogin(existingUser._id)
-                }
-
-                return true
-            } catch (error) {
-                console.error("Error in signIn callback:", error)
-                return false
+        async signIn({ user, account }) {
+          try {
+            const existingUser = await DatabaseService.getUserByEmail(user.email as string);
+            const now = new Date();
+            
+            if (!existingUser) {
+              const userDoc = {
+                email: user.email,
+                name: user.name,
+                imageUrl: user.image,
+                createdAt: now,
+                updatedAt: now,
+                lastLoginAt: now,
+                walletAddress: (user as any).walletAddress // Store wallet address if present
+              };
+              
+              const client = await clientPromise;
+              const collection = client.db("DB").collection('users');
+              await collection.insertOne({
+                ...userDoc,
+                _id: new ObjectId()
+              });
+            } else {
+              await DatabaseService.updateUserLastLogin(existingUser._id);
+              // Update wallet address if using Phantom
+              if (account?.provider === 'phantom') {
+                await DatabaseService.updateUser(existingUser._id, {
+                  walletAddress: (user as any).walletAddress
+                });
+              }
             }
+            return true;
+          } catch (error) {
+            console.error("Error in signIn callback:", error);
+            return false;
+          }
         },
         async session({ session, user }) {
             try {

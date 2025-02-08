@@ -3,6 +3,7 @@ import { getProviders } from "next-auth/react";
 import Link from 'next/link';
 import { X } from 'lucide-react';
 import AuthProviderBlock from "@/lib/components/auth/AuthProviderBlock";
+import PhantomConnect from '../PhantomConnect';
 
 interface SignInModalProps {
   isOpen: boolean;
@@ -79,16 +80,7 @@ const SignInModal: React.FC<SignInModalProps> = ({ isOpen, onClose }) => {
                </p>
 
               <div className="w-full space-y-3">
-                {Object.values(providers).map((provider: any) => (
-                  <div key={provider.id}>
-                    <AuthProviderBlock
-                      providerName={provider.name}
-                      iconLink={`/providers/${provider.id}.png`}
-                      provider={provider}
-                      callbackUrl="/dashboard"  
-                    />
-                  </div>
-                ))}
+                <PhantomConnect />
               </div>
 
               <div className="text-center text-sm text-primary-200">

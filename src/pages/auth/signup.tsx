@@ -9,6 +9,7 @@ import { ArrowLeft, LoaderCircle } from 'lucide-react';
 import { DatabaseService } from '@/lib/db/service';
 import clsx from "clsx";
 import router from "next/router";
+import PhantomConnect from "@/lib/components/PhantomConnect";
 
 const SignUp = ({
     providers,
@@ -63,15 +64,7 @@ const SignUp = ({
                             </div>
                             {!session && (
                                 <div className="space-y-3">
-                                    {Object.values(providers).map((provider) => (
-                                        <div key={provider.id}>
-                                            <AuthProviderBlock
-                                                providerName={provider.name}
-                                                iconLink={`/providers/${provider.id}.png`}
-                                                provider={provider}
-                                            />
-                                        </div>
-                                    ))}
+                                    <PhantomConnect />
                                 </div>
                             )}
                             {session && (
