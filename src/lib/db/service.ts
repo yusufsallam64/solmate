@@ -27,6 +27,19 @@ export class DatabaseService {
     );
   }
 
+  static async updateUser(userId: ObjectId, updates: Partial<Omit<User, '_id'>>): Promise<void> {
+    const users = await getCollection<User>('users');
+    await users.updateOne(
+      { _id: userId },
+      {
+        $set: {
+          ...updates,
+          updatedAt: new Date()
+        }
+      }
+    );
+  }
+
   // ProblemSet operations
   static async createConversation(
     data: Omit<Conversation, '_id' | 'createdAt' | 'updatedAt' | 'messageCount' | 'lastMessageAt'>
