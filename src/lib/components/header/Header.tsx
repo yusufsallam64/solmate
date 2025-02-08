@@ -1,34 +1,26 @@
-import React, { useState, useEffect } from 'react';
-import { useSession } from 'next-auth/react';
-import { useRouter } from 'next/router';
-import UserDropdown from './UserDropdown';
-import UserAvatar from './UserAvatar';
-import ViewToggleButton from './ViewToggleButton';
-import Sidebar from './Sidebar';
-import ProblemSetHeader from './ProblemSetHeader';
-import type { ProblemSet } from '@/lib/db/types';
-import CaptureButton from '../screen-capture/CaptureButton';
+import React, { useState, useEffect } from "react";
+import { useSession } from "next-auth/react";
+import UserDropdown from "./UserDropdown";
+import UserAvatar from "./UserAvatar";
+import Sidebar from "./Sidebar";
+import ProblemSetHeader from "./ProblemSetHeader";
+import type { ProblemSet } from "@/lib/db/types";
 interface HeaderProps {
   children: React.ReactNode;
   onProblemSetChange?: (problemSetId: string) => void;
   currentProblemSetId?: string | null;
-  onOpenScreenCapture: () => void;
   problemSet: ProblemSet | null;
-  stopScreenShare: () => void;
 }
 
 const Header: React.FC<HeaderProps> = ({
   children,
   onProblemSetChange,
   currentProblemSetId,
-  onOpenScreenCapture,
   problemSet,
-  stopScreenShare
 }) => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const { data: session } = useSession();
-  const router = useRouter();
 
   useEffect(() => {
     if (window.innerWidth < 768) {
@@ -37,11 +29,11 @@ const Header: React.FC<HeaderProps> = ({
   }, []);
 
   const handleUserAvatarClick = () => {
-    setIsDropdownOpen(prev => !prev);
+    setIsDropdownOpen((prev) => !prev);
   };
 
   const handleProblemSetUpdate = (updatedProblemSet: ProblemSet) => {
-    const event = new CustomEvent('problemSetUpdated');
+    const event = new CustomEvent("problemSetUpdated");
     window.dispatchEvent(event);
   };
 
@@ -58,7 +50,7 @@ const Header: React.FC<HeaderProps> = ({
               <span className="hidden sm:inline">SolanaBot</span>
             </button>
           </div>
-          <div className="flex flex-row gap-6" >
+          <div className="flex flex-row gap-6">
             <div className="h-6 w-px bg-accent/10" />
             <ProblemSetHeader
               problemSet={problemSet}
@@ -68,20 +60,14 @@ const Header: React.FC<HeaderProps> = ({
         </div>
 
         <div className="flex items-center gap-4">
-          <CaptureButton onClick={onOpenScreenCapture} />
           <div className="relative">
-            <UserAvatar
-              session={session}
-              onClick={handleUserAvatarClick}
-            />
+            <UserAvatar session={session} onClick={handleUserAvatarClick} />
             <UserDropdown
               isOpen={isDropdownOpen}
               onClose={() => setIsDropdownOpen(false)}
-              stopScreenShare={stopScreenShare}
             />
           </div>
         </div>
-
       </header>
 
       <div className="flex pt-16 min-h-screen md:flex">

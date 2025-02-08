@@ -6,8 +6,6 @@ import { ChatInterface } from "@/lib/components/dashboard/ChatInterface";
 import { GetServerSidePropsContext } from "next";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/pages/api/auth/[...nextauth]";
-import { DatabaseService } from "@/lib/db/service";
-import ScreenCaptureModal from '@/lib/components/screen-capture/ScreenCaptureModal';
 
 type ViewState = 'chat' | 'problems';
 interface MessageData {
@@ -25,23 +23,6 @@ export default function Dashboard() {
   const [currentProblemSet, setCurrentProblemSet] = useState<ProblemSet | null>(null);
   const [problems, setProblems] = useState<Problem[]>([]);
   const [viewState, setViewState] = useState<ViewState>('chat');
-  const [isScreenCaptureOpen, setIsScreenCaptureOpen] = useState(false);
-  const [screenCaptureStream, setScreenCaptureStream] = useState<MediaStream | null>(null);
-  const [isScreenSharing, setIsScreenSharing] = useState(false);
-
-  const stopScreenShare = useCallback(() => {
-    if (screenCaptureStream) {
-      screenCaptureStream.getTracks().forEach(track => track.stop());
-      setScreenCaptureStream(null);
-      setIsScreenSharing(false);
-    }
-  }, [screenCaptureStream]);
-
-  useEffect(() => {
-    return () => {
-      stopScreenShare();
-    };
-  }, [stopScreenShare]);
 
   // Load problem sets on mount
   useEffect(() => {
@@ -128,43 +109,6 @@ export default function Dashboard() {
     }
   }, []);
 
-  const handleScreenshot = useCallback(async (screenshot: string) => {
-    if (viewState !== 'chat') {
-      toast.error('Please select a problem', { duration: 3000 });
-      return;
-    }
-    try {
-      
-      const response = await fetch('/api/screenshots', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          screenshot,
-          problemSetId: currentProblemSetId
-        }),
-      });
-
-      if (!response.ok) throw new Error('Failed to process screenshot');
-
-      const { problem, messages: newMessages } = await response.json();
-
-      if (problem && newMessages) {
-        setCurrentProblem(problem);
-        setMessages(newMessages);
-        
-        if (currentProblemSetId) {
-          await loadProblemsForSet(currentProblemSetId, 'chat');
-        }
-      } else {
-        toast.error('No problem/solution found on screen. Please try again.');
-      }
-    } catch (error) {
-      toast.error('Failed to process screenshot');
-      console.error('Error processing screenshot:', error);
-      setError('Failed to process screenshot');
-    }
-  }, [currentProblemSetId, loadProblemsForSet, viewState]);
-
   const handleSubmit = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -249,8 +193,6 @@ export default function Dashboard() {
       problemSet={currentProblemSet}
       onProblemSetChange={handleProblemSetChange}
       currentProblemSetId={currentProblemSetId}
-      onOpenScreenCapture={() => setIsScreenCaptureOpen(true)}
-      stopScreenShare={stopScreenShare}
     >
       <div className="h-[calc(100vh-4rem)] p-6">
         <ChatInterface
@@ -267,20 +209,8 @@ export default function Dashboard() {
           setMessages={setMessages}
           viewState={viewState}
           setViewState={setViewState}
-          handleScreenshot={() => handleScreenshot('')}  
-          isScreenSharing={isScreenSharing}
         />
       </div>
-
-      <ScreenCaptureModal
-        isOpen={isScreenCaptureOpen}
-        onClose={() => setIsScreenCaptureOpen(false)}
-        onCapture={handleScreenshot}
-        externalStream={screenCaptureStream}
-        onStreamChange={setScreenCaptureStream}
-        isExternallySharing={isScreenSharing}
-        onSharingChange={setIsScreenSharing}
-      />
     </DashboardLayout>
   );
 }

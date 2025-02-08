@@ -21,8 +21,6 @@ interface ChatInterfaceProps {
   setMessages: (messages: Message[] | ((prev: Message[]) => Message[])) => void;
   viewState: ViewState;
   setViewState: (state: ViewState) => void;
-  handleScreenshot: () => Promise<void>;
-  isScreenSharing: boolean;
 }
 
 export const ChatInterface = ({
@@ -39,8 +37,6 @@ export const ChatInterface = ({
   setMessages,
   viewState,
   setViewState,
-  handleScreenshot,
-  isScreenSharing,
 }: ChatInterfaceProps) => {
   const messageContainerRef = useRef<HTMLDivElement>(null);
 
@@ -157,8 +153,6 @@ export const ChatInterface = ({
               error={error}
               isLoading={isLoading}
               onSubmit={handleSubmit}
-              onGuidance={handleScreenshot}
-              isScreenSharing={isScreenSharing}
             />
           </div>
         </div>

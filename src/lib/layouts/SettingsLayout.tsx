@@ -31,7 +31,6 @@ const SettingsLayout: React.FC<SettingsLayoutProps> = ({ children }) => {
 
   const navItems = [
     { href: '/settings/profile', label: 'Profile', icon: User },
-    { href: '/settings/billing', label: 'Billing', icon: CreditCard },
   ];
 
   return (

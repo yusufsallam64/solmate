@@ -6,10 +6,9 @@ import { useRouter } from 'next/router';
 interface UserDropdownProps {
   isOpen: boolean;
   onClose: () => void;
-  stopScreenShare?: () => void;
 }
 
-const UserDropdown: React.FC<UserDropdownProps> = ({ isOpen, onClose, stopScreenShare }) => {
+const UserDropdown: React.FC<UserDropdownProps> = ({ isOpen, onClose }) => {
   const dropdownRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
 
@@ -28,7 +27,6 @@ const UserDropdown: React.FC<UserDropdownProps> = ({ isOpen, onClose, stopScreen
 
   const handleSignOut = async () => {
     try {
-      stopScreenShare?.();
       await signOut({ 
         redirect: false,
         callbackUrl: '/'
@@ -53,7 +51,7 @@ const UserDropdown: React.FC<UserDropdownProps> = ({ isOpen, onClose, stopScreen
         <div className="py-1">
           <button 
             className="w-full px-4 py-2 text-left text-primary-100 hover:bg-accent/10 flex items-center gap-2 transition-colors duration-200"
-            onClick={() => {router.push('/settings/profile'); onClose(); stopScreenShare?.();}}
+            onClick={() => {router.push('/settings/profile'); onClose();}}
           >
             <Settings size={16} />
             <span>Settings</span>
