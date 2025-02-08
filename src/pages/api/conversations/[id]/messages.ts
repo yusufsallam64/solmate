@@ -1,11 +1,7 @@
-// pages/api/problems/[id]/messages.ts
 import type { NextApiRequest, NextApiResponse } from 'next';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/pages/api/auth/[...nextauth]';
 import { DatabaseService } from '@/lib/db/service';
 import { ObjectId } from 'mongodb';
-import { getUserId } from '@/lib/helpers';
-import { authenticateRequest } from '../../problemsets';
+import { authenticateRequest } from '../../conversations';
 
 export default async function handler(
   req: NextApiRequest,
@@ -25,29 +21,29 @@ export default async function handler(
   }
 
   const { id } = req.query;
-  console.log('🎯 Problem ID from query:', id);
+  console.log('🎯 Conversation ID from query:', id);
   
   if (!id || typeof id !== 'string') {
-    console.log('❌ Invalid problem ID:', id);
-    return res.status(400).json({ error: 'Problem ID is required' });
+    console.log('❌ Invalid conversation ID:', id);
+    return res.status(400).json({ error: 'Conversation ID is required' });
   }
 
-  // Verify problem ownership
-  const problem = await DatabaseService.getProblem(new ObjectId(id));
-  console.log('📝 Found problem:', problem ? 'yes' : 'no');
-  console.log('🔐 Problem userId:', problem?.userId.toString());
+  // Verify conversation ownership
+  const conversation = await DatabaseService.getConversation(new ObjectId(id));
+  console.log('📝 Found conversation:', conversation ? 'yes' : 'no');
+  console.log('🔐 Conversation userId:', conversation?.userId.toString());
   console.log('🔑 Request userId:', userId);
   
-  if (!problem || problem.userId.toString() !== userId) {
-    console.log('❌ Forbidden - Problem ownership mismatch');
+  if (!conversation || conversation.userId.toString() !== userId) {
+    console.log('❌ Forbidden - Conversation ownership mismatch');
     return res.status(403).json({ error: 'Forbidden' });
   }
 
   switch (req.method) {
     case 'GET':
       try {
-        console.log('📥 Fetching messages for problem:', id);
-        const messages = await DatabaseService.getProblemMessages(new ObjectId(id));
+        console.log('📥 Fetching messages for conversation:', id);
+        const messages = await DatabaseService.getConversationMessages(new ObjectId(id));
         console.log('✅ Found messages:', messages.length);
         res.status(200).json(messages);
       } catch (error) {
@@ -70,7 +66,7 @@ export default async function handler(
         }
 
         const messageId = await DatabaseService.createMessage({
-          problemId: new ObjectId(id),
+          conversationId: new ObjectId(id),
           userId: new ObjectId(userId),
           role,
           content,

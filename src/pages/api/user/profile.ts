@@ -1,7 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { DatabaseService } from '@/lib/db/service';
 import { ObjectId } from 'mongodb';
-import { authenticateRequest } from '../problemsets';
+import { authenticateRequest } from '../conversations';
 
 export default async function handler(
     req: NextApiRequest,

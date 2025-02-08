@@ -1,13 +1,13 @@
 import { useCallback, useState, useEffect } from "react";
-import { Message, Problem, ProblemSet } from "@/lib/db/types";
+import { Message, Conversation } from "@/lib/db/types";
 import toast from "react-hot-toast";
 import { DashboardLayout } from '@/lib/layouts';
 import { ChatInterface } from "@/lib/components/dashboard/ChatInterface";
 import { GetServerSidePropsContext } from "next";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/pages/api/auth/[...nextauth]";
+import { DatabaseService } from "@/lib/db/service";
 
-type ViewState = 'chat' | 'problems';
 interface MessageData {
   role: 'user' | 'assistant' | 'system';
   content: string;
@@ -18,95 +18,44 @@ export default function Dashboard() {
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
   const [messages, setMessages] = useState<Message[]>([]);
-  const [currentProblem, setCurrentProblem] = useState<Problem | undefined>(undefined);
-  const [currentProblemSetId, setCurrentProblemSetId] = useState<string | null>(null);
-  const [currentProblemSet, setCurrentProblemSet] = useState<ProblemSet | null>(null);
-  const [problems, setProblems] = useState<Problem[]>([]);
-  const [viewState, setViewState] = useState<ViewState>('chat');
+  const [currentConversation, setCurrentConversation] = useState<Conversation | undefined>(undefined);
+  const [conversations, setConversations] = useState<Conversation[]>([]);
 
-  // Load problem sets on mount
+  // Load conversations on mount
   useEffect(() => {
-    async function loadProblemSets() {
+    async function loadConversations() {
       try {
-        const response = await fetch('/api/problemsets');
-        if (!response.ok) throw new Error('Failed to fetch problem sets');
+        const response = await fetch('/api/conversations');
+        if (!response.ok) throw new Error('Failed to fetch conversations');
 
-        const sets: ProblemSet[] = await response.json();
-
-        if (sets.length > 0 && !currentProblemSetId) {
-          const firstSetId = sets[0]._id.toString();
-          setCurrentProblemSetId(firstSetId);
-          setCurrentProblemSet(sets[0]);
-          await loadProblemsForSet(firstSetId);
-        }
+        const conversationsData: Conversation[] = await response.json();
+        setConversations(conversationsData);
       } catch (error) {
-        console.error('Error loading problem sets:', error);
-        toast.error('Failed to load problem sets');
+        console.error('Error loading conversations:', error);
+        toast.error('Failed to load conversations');
       }
     }
-    loadProblemSets();
+    loadConversations();
   }, []);
 
-  useEffect(() => {
-    if (!currentProblemSetId) return;
-
-    async function loadProblems() {
-      try {
-        const response = await fetch(`/api/problemsets/${currentProblemSetId}/problems`);
-        if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(errorData.error || 'Failed to fetch problems');
-        }
-
-        const problemsData = await response.json();
-        setProblems(problemsData);
-      } catch (error) {
-        console.error('Error loading problems:', error);
-        toast.error('Failed to load problems');
-      }
-    }
-
-    loadProblems();
-  }, [currentProblemSetId]);
-
-  const handleProblemSetChange = async (problemSetId: string) => {
-    setCurrentProblemSetId(problemSetId);
-    setCurrentProblem(undefined);
-    setMessages([]);
-
+  const handleConversationChange = async (conversationId: string) => {
     try {
-      const response = await fetch(`/api/problemsets/${problemSetId}`);
-      if (!response.ok) throw new Error('Failed to fetch problem set');
-      const problemSet = await response.json();
-      setCurrentProblemSet(problemSet);
+      const response = await fetch(`/api/conversations/${conversationId}`);
+      if (!response.ok) throw new Error('Failed to fetch conversation');
+      
+      const data = await response.json();
+      setCurrentConversation(data.conversation);
+      setMessages(data.messages);
     } catch (error) {
-      console.error('Error fetching problem set:', error);
-      toast.error('Failed to load problem set');
+      console.error('Error fetching conversation:', error);
+      toast.error('Failed to load conversation');
     }
-
-    await loadProblemsForSet(problemSetId);
   };
 
-  const loadProblemsForSet = useCallback(async (problemSetId: string, state?: ViewState) => {
-    try {
-      const response = await fetch(`/api/problemsets/${problemSetId}/problems`);
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to fetch problems');
-      }
-
-      const problemsData = await response.json();
-      setProblems(problemsData);
-      setViewState((problemsData.length > 0) ? 'problems' : 'chat');
-      if (state) {
-        setViewState(state);
-      }
-    } catch (error) {
-      console.error('Error loading problems:', error);
-      toast.error('Failed to load problems');
-      setProblems([]);
-      setViewState('chat');
-    }
+  const handleNewChat = useCallback(() => {
+    setCurrentConversation(undefined);
+    setMessages([]);
+    setMessage("");
   }, []);
 
   const handleSubmit = useCallback(async (e: React.FormEvent) => {
@@ -125,29 +74,25 @@ export default function Dashboard() {
       _id: `temp-${Date.now()}` as any, // temporary ID for optimistic update
       role: 'user',
       content: messageContent,
-      problemId: currentProblem?._id || ('' as any),
+      conversationId: currentConversation?._id || ('' as any),
       userId: '' as any, // This will be set by the server
       createdAt: new Date(),
     };
+
     // Immediately update the UI with the user's message
-    if (currentProblem) {
-      setMessages(prevMessages => [...prevMessages, userMessage]);
-    } else {
-      setMessages([userMessage]);
-    }
+    setMessages(prevMessages => [...prevMessages, userMessage]);
   
     try {      
       const truncatedUserMessage = { role: 'user' as const, content: messageContent };
 
-      const response = await fetch('/api/model/clarify', {
+      const response = await fetch('/api/model/handler', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          interactionMessages: currentProblem 
+          interactionMessages: currentConversation 
             ? [...messages, truncatedUserMessage] 
             : [truncatedUserMessage],
-          problemSetId: currentProblemSetId,
-          ...(currentProblem && { problemId: currentProblem._id })
+          conversationId: currentConversation?._id
         }),
       });
   
@@ -157,25 +102,25 @@ export default function Dashboard() {
   
       const data = await response.json();
   
-      if (currentProblem) {
+      if (currentConversation) {
         setMessages(data.messages);
-        setProblems(prevProblems => prevProblems.map(problem => 
-          problem._id.toString() === currentProblem._id.toString() 
+        setConversations(prevConversations => prevConversations.map(conv => 
+          conv._id.toString() === currentConversation._id.toString() 
             ? {
-                ...problem,
+                ...conv,
                 messageCount: data.messages.length,
                 lastMessageAt: new Date()
               }
-            : problem
+            : conv
         ));
       } else {
-        setCurrentProblem(data.problem);
+        setCurrentConversation(data.conversation);
         setMessages(data.messages);
-        setProblems(prevProblems => [{
-          ...data.problem,
+        setConversations(prevConversations => [{
+          ...data.conversation,
           messageCount: data.messages.length,
           lastMessageAt: new Date()
-        }, ...prevProblems]);
+        }, ...prevConversations]);
       }
     } catch (error) {
       console.error('Error:', error);
@@ -186,29 +131,24 @@ export default function Dashboard() {
     } finally {
       setIsLoading(false);
     }
-  }, [message, messages, currentProblem, isLoading, currentProblemSetId]);
+  }, [message, messages, currentConversation, isLoading]);
 
   return (
     <DashboardLayout
-      problemSet={currentProblemSet}
-      onProblemSetChange={handleProblemSetChange}
-      currentProblemSetId={currentProblemSetId}
+      conversations={conversations}
+      onConversationChange={handleConversationChange}
+      currentConversation={currentConversation}
+      onNewChat={handleNewChat}
     >
       <div className="h-[calc(100vh-4rem)] p-6">
         <ChatInterface
-          problems={problems}
-          currentProblem={currentProblem}
-          currentProblemSetId={currentProblemSetId}
+          currentConversation={currentConversation}
           messages={messages}
           message={message}
           setMessage={setMessage}
           error={error}
           isLoading={isLoading}
           handleSubmit={handleSubmit}
-          setCurrentProblem={setCurrentProblem}
-          setMessages={setMessages}
-          viewState={viewState}
-          setViewState={setViewState}
         />
       </div>
     </DashboardLayout>
