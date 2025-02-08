@@ -2,29 +2,23 @@ import React, { useState, useRef, useEffect } from 'react';
 import { MoreHorizontal, Edit2, Trash2, Check, X } from 'lucide-react';
 import { useRouter } from 'next/router';
 import toast from 'react-hot-toast';
-import { ProblemSet } from '@/lib/db/types';
+import { Conversation } from '@/lib/db/types';
 import Modal from '@/lib/components/ui/Modal';
 
-interface ProblemSetHeaderProps {
-  problemSet: ProblemSet | null;
-  onProblemSetUpdate: (updatedProblemSet: ProblemSet) => void;
+interface ConversationHeaderProps {
+  conversation: Conversation;
+  onDelete: () => void;
 }
 
-const ProblemSetHeader: React.FC<ProblemSetHeaderProps> = ({ problemSet, onProblemSetUpdate }) => {
+const ConversationHeader: React.FC<ConversationHeaderProps> = ({ conversation, onDelete }) => {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isRenaming, setIsRenaming] = useState(false);
-  const [newTitle, setNewTitle] = useState('');
+  const [newTitle, setNewTitle] = useState(conversation.title);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const router = useRouter();
-
-  useEffect(() => {
-    if (problemSet?.title) {
-      setNewTitle(problemSet.title);
-    }
-  }, [problemSet]);
 
   useEffect(() => {
     const handleResize = () => setIsMobile(window.innerWidth < 768);
@@ -56,25 +50,16 @@ const ProblemSetHeader: React.FC<ProblemSetHeaderProps> = ({ problemSet, onProbl
     };
   }, [isDropdownOpen]);
 
-  // Return loading state while waiting for problem set
-  if (!problemSet) {
-    return (
-      <div className="flex items-center gap-2">
-        <div className="h-6 w-48 bg-accent/10 animate-pulse rounded-sm" />
-      </div>
-    );
-  }
-
   const handleRename = async (e?: React.FormEvent) => {
     e?.preventDefault();
-    if (!newTitle.trim() || newTitle === problemSet.title) {
+    if (!newTitle.trim() || newTitle === conversation.title) {
       setIsRenaming(false);
-      setNewTitle(problemSet.title);
+      setNewTitle(conversation.title);
       return;
     }
   
     try {
-      const response = await fetch(`/api/problemsets/${problemSet._id}`, {
+      const response = await fetch(`/api/conversations/${conversation._id}`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
@@ -82,63 +67,20 @@ const ProblemSetHeader: React.FC<ProblemSetHeaderProps> = ({ problemSet, onProbl
         body: JSON.stringify({ title: newTitle.trim() }),
       });
   
-      if (!response.ok) throw new Error('Failed to rename problem set');
+      if (!response.ok) throw new Error('Failed to rename conversation');
   
-      const updatedProblemSet = await response.json();
-      updatedProblemSet.title = newTitle.trim();
-      onProblemSetUpdate(updatedProblemSet); // Ensure this updates the parent state
-      toast.success('Problem set renamed');
+      toast.success('Conversation renamed');
       setIsRenaming(false);
     } catch (err) {
-      console.error('Error renaming problem set:', err);
-      toast.error('Failed to rename problem set');
-      setNewTitle(problemSet.title);
+      console.error('Error renaming conversation:', err);
+      toast.error('Failed to rename conversation');
+      setNewTitle(conversation.title);
     }
   };
-  
 
   const handleDelete = () => {
     setIsDeleteModalOpen(true);
     setIsDropdownOpen(false);
-  };
-
-  const confirmDelete = async () => {
-    try {
-      const problemSetsResponse = await fetch('/api/problemsets');
-      if (!problemSetsResponse.ok) throw new Error('Failed to fetch problem sets');
-      const allProblemSets = await problemSetsResponse.json();
-
-      const currentIndex = allProblemSets.findIndex(
-        (set: ProblemSet) => set._id.toString() === problemSet._id.toString()
-      );
-
-      const nextProblemSet = allProblemSets[currentIndex + 1] || allProblemSets[currentIndex - 1];
-
-      const response = await fetch(`/api/problemsets/${problemSet._id}`, {
-        method: 'DELETE',
-      });
-
-      if (!response.ok) throw new Error('Failed to delete problem set');
-
-      const deletedEvent = new CustomEvent('problemSetDeleted', {
-        detail: { problemSetId: problemSet._id.toString() }
-      });
-      window.dispatchEvent(deletedEvent);
-
-      toast.success('Problem set deleted');
-      setIsDeleteModalOpen(false);
-
-      setTimeout(() => {
-        if (nextProblemSet) {
-          router.push(`/dashboard?problemSet=${nextProblemSet._id}`);
-        } else {
-          router.push('/dashboard');
-        }
-      }, 100);
-    } catch (err) {
-      console.error('Error deleting problem set:', err);
-      toast.error('Failed to delete problem set');
-    }
   };
 
   return (
@@ -154,14 +96,14 @@ const ProblemSetHeader: React.FC<ProblemSetHeaderProps> = ({ problemSet, onProbl
                 onChange={(e) => setNewTitle(e.target.value)}
                 onKeyDown={(e) => {
                   if (e.key === 'Escape') {
-                    setNewTitle(problemSet.title);
+                    setNewTitle(conversation.title);
                     setIsRenaming(false);
                   }
                 }}
                 className="px-3 py-1.5 bg-primary-900/50 rounded-lg border border-accent/20 
                            focus:border-accent/40 focus:outline-hidden text-primary-100 
                            placeholder-primary-300/50 w-[300px] pr-16"
-                placeholder="Enter problem set name"
+                placeholder="Enter conversation name"
               />
               <div className="absolute right-1 top-1/2 -translate-y-1/2 flex items-center gap-1">
                 <button
@@ -174,7 +116,7 @@ const ProblemSetHeader: React.FC<ProblemSetHeaderProps> = ({ problemSet, onProbl
                 <button
                   type="button"
                   onClick={() => {
-                    setNewTitle(problemSet.title);
+                    setNewTitle(conversation.title);
                     setIsRenaming(false);
                   }}
                   className="p-1 hover:bg-red-500/20 rounded-md text-red-400 transition-colors duration-200"
@@ -188,7 +130,7 @@ const ProblemSetHeader: React.FC<ProblemSetHeaderProps> = ({ problemSet, onProbl
         ) : (
           <>
             <h2 className="text-lg font-semibold text-primary-100 truncate max-w-[300px]">
-              {problemSet.title}
+              {conversation.title}
             </h2>
             <div className="relative" ref={dropdownRef}>
               <button
@@ -229,13 +171,13 @@ const ProblemSetHeader: React.FC<ProblemSetHeaderProps> = ({ problemSet, onProbl
       </div>
   
       <Modal
-        title="Delete Problem Set"
+        title="Delete Conversation"
         isOpen={isDeleteModalOpen}
         onClose={() => setIsDeleteModalOpen(false)}
       >
         <div className="p-2 text-primary-300">
           <p className="text-primary-300 mb-1 text-center truncate">
-            Are you sure you want to delete "{problemSet.title}"?
+            Are you sure you want to delete "{conversation.title}"?
           </p>
           <span className='font-bold text-center'>This action cannot be undone.</span>
   
@@ -247,7 +189,10 @@ const ProblemSetHeader: React.FC<ProblemSetHeaderProps> = ({ problemSet, onProbl
               Cancel
             </button>
             <button
-              onClick={confirmDelete}
+              onClick={() => {
+                onDelete();
+                setIsDeleteModalOpen(false);
+              }}
               className="px-4 py-2 rounded-lg bg-red-600 text-white hover:bg-red-700"
               autoFocus
             >
@@ -258,6 +203,6 @@ const ProblemSetHeader: React.FC<ProblemSetHeaderProps> = ({ problemSet, onProbl
       </Modal>
     </>
   );
-}  
+};
 
-export default ProblemSetHeader;
+export default ConversationHeader;

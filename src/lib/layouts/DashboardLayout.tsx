@@ -1,25 +1,28 @@
 import React from 'react';
 import Header from '../components/header';
-import { ProblemSet } from '../db/types';
+import { Conversation } from '../db/types';
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
-  onProblemSetChange?: (problemSetId: string) => void;
-  currentProblemSetId?: string | null;
-  problemSet: ProblemSet | null;
+  conversations: Conversation[];
+  onConversationChange: (conversationId: string) => void;
+  currentConversation?: Conversation;
+  onNewChat: () => void;
 }
 
 const DashboardLayout: React.FC<DashboardLayoutProps> = ({
-  problemSet,
   children,
-  onProblemSetChange,
-  currentProblemSetId,
+  conversations,
+  onConversationChange,
+  currentConversation,
+  onNewChat
 }) => {
   return (
     <Header
-      problemSet={problemSet}
-      onProblemSetChange={onProblemSetChange}
-      currentProblemSetId={currentProblemSetId}
+      conversations={conversations}
+      onConversationChange={onConversationChange}
+      currentConversation={currentConversation}
+      onNewChat={onNewChat}
     >
       {children}
     </Header>

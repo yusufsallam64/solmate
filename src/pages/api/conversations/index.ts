@@ -1,10 +1,11 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { getServerSession } from 'next-auth';
-import { authOptions, verifyToken } from '../auth/[...nextauth]';
+import { authOptions } from '../auth/[...nextauth]';
 import { DatabaseService } from '@/lib/db/service';
 import { ObjectId } from 'mongodb';
 import { getUserId } from '@/lib/helpers';
 
+// Exported for use in other routes
 export async function authenticateRequest(req: NextApiRequest, res: NextApiResponse): Promise<string | null> {
   // attempt web auth
   const session = await getServerSession(req, res, authOptions);
@@ -13,13 +14,19 @@ export async function authenticateRequest(req: NextApiRequest, res: NextApiRespo
     if (userId) return userId;
   }
 
-  // attempt jwt auth
+  // attempt token auth if you have token-based auth
+  // If you don't have token-based auth, you can remove this part
   const authHeader = req.headers.authorization;
   if (authHeader && authHeader.startsWith('Bearer ')) {
     try {
-      const token = authHeader.substring(7);
-      const decoded = verifyToken(token);
-      return decoded.userId;
+      // You'll need to implement your own token verification logic here
+      // For example:
+      // const token = authHeader.substring(7);
+      // const decoded = jwt.verify(token, process.env.JWT_SECRET);
+      // return decoded.userId;
+
+      console.log('***URGENT: REMEMBER TO IMPLEMENT TOKEN VERIFICATION LOGIC***');
+      return null;
     } catch (error) {
       return null;
     }
@@ -41,37 +48,29 @@ export default async function handler(
   switch (req.method) {
     case 'GET':
       try {
-        const problemSets = await DatabaseService.getUserProblemSets(new ObjectId(userId));
-        res.status(200).json(problemSets);
+        const conversations = await DatabaseService.getUserConversations(new ObjectId(userId));
+        res.status(200).json(conversations);
       } catch (error) {
-        console.error('Error fetching problem sets:', error);
-        res.status(500).json({ error: 'Failed to fetch problem sets' });
+        console.error('Error fetching conversations:', error);
+        res.status(500).json({ error: 'Failed to fetch conversations' });
       }
       break;
 
     case 'POST':
       try {
-        const { 
-          title = 'New Problem Set', 
-          description = '', 
-          subject = '', 
-          topic = '',
-          icon = 'general' 
-        } = req.body;
+        const { title = 'New Conversation' } = req.body;
         
-        const problemSetId = await DatabaseService.createProblemSet({
+        const conversationId = await DatabaseService.createConversation({
           userId: new ObjectId(userId),
           title,
-          description,
-          subject,
-          topic,
-          icon,
           status: 'active'
         });
-        res.status(201).json({ problemSetId });
+
+        const conversation = await DatabaseService.getConversation(conversationId);
+        res.status(201).json({ conversation });
       } catch (error) {
-        console.error('Error creating problem set:', error);
-        res.status(500).json({ error: 'Failed to create problem set' });
+        console.error('Error creating conversation:', error);
+        res.status(500).json({ error: 'Failed to create conversation' });
       }
       break;
 

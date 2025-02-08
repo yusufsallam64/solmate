@@ -10,36 +10,11 @@ export interface User {
   lastLoginAt: Date;
 }
 
-export type SubjectIcon = 
-  'general' |
-  'math' | 
-  'science' | 
-  'computer' | 
-  'chemistry' | 
-  'physics' | 
-  'biology';
-
-export interface ProblemSet {
+export interface Conversation {
   _id: ObjectId;
   userId: ObjectId;
   title: string;
-  description?: string;
-  subject?: string;
-  icon?: SubjectIcon;
-  topic?: string;
-  status: 'active' | 'archived' | 'completed';
-  createdAt: Date;
-  updatedAt: Date;
-  problemCount: number;
-  lastAccessedAt: Date;
-}
-export interface Problem {
-  _id: ObjectId;
-  problemSetId: ObjectId;
-  userId: ObjectId;
-  title: string;
-  description?: string;
-  status: 'unsolved' | 'in_progress' | 'solved' | 'needs_review';
+  status: 'active' | 'archived';
   createdAt: Date;
   updatedAt: Date;
   lastMessageAt: Date;
@@ -48,7 +23,7 @@ export interface Problem {
 
 export interface Message {
   _id: ObjectId;
-  problemId: ObjectId;
+  conversationId: ObjectId;
   userId: ObjectId;
   role: 'user' | 'assistant' | 'system';
   content: string;
