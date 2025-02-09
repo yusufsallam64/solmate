@@ -3,6 +3,7 @@ import { ModelFunction } from './natural';
 import { checkBalance } from './wallet-tools/balance';
 import { transferSol } from './wallet-tools/transfer';
 import { swapTokens } from './wallet-tools/swap';
+import { checkCryptoPrice } from './wallet-tools/price';
 import { AVAILABLE_TOOLS, TOKENS } from './wallet-tools/types';
 
 export { AVAILABLE_TOOLS };
@@ -39,7 +40,12 @@ For swaps:
 1. Use swapTokens for any swap request between SOL and USDC
 2. Parse amount and direction from user request
 3. Format amount properly and specify input/output tokens
-4. Confirm the swap details with estimated output`;
+4. Confirm the swap details with estimated output
+
+For price checks:
+1. Use checkCryptoPrice with the requested symbol
+2. Present the price data clearly in USD
+3. Format large numbers with appropriate commas and decimals`;
 
 export async function handleToolCalls(
   toolCalls: Array<{ name: string; arguments: Record<string, any> }>,
@@ -85,6 +91,13 @@ export async function handleToolCalls(
             throw new Error('Cannot swap same tokens');
           }
           toolResult = await swapTokens(toolCall.arguments);
+          break;
+        }
+
+        case 'checkCryptoPrice': {
+          const { symbol } = toolCall.arguments;
+          if (!symbol) throw new Error('Symbol is required');
+          toolResult = await checkCryptoPrice(toolCall.arguments);
           break;
         }
 

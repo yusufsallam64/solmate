@@ -189,12 +189,14 @@ export default async function handler(
     }
 
     // Store the assistant's response
-    await storeMessage(
-      currentConversationId,
-      userId,
-      'assistant',
-      responseToStore
-    );
+    if (!responseToStore.startsWith('[{') || !responseToStore.endsWith('}]')) {
+      await storeMessage(
+        currentConversationId,
+        userId,
+        'assistant',
+        responseToStore
+      );
+    }
 
     // Return the response
     return res.status(200).json({

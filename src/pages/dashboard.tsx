@@ -88,15 +88,15 @@ export default function Dashboard() {
 
   const handleSubmit = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
-
+  
     if (!message.trim() || isLoading) return;
-
+  
     setIsLoading(true);
     setError("");
-
+  
     const messageContent = message.trim();
     setMessage("");
-
+  
     const userMessage: Message = {
       _id: `temp-${Date.now()}` as any,
       role: 'user',
@@ -105,37 +105,43 @@ export default function Dashboard() {
       userId: '' as any,
       createdAt: new Date(),
     };
-
-    setMessages(prevMessages => [...prevMessages, userMessage]);
-
+  
+    // Add the user message to the existing messages
+    const updatedMessages = [...messages, userMessage];
+    setMessages(updatedMessages);
+  
     try {
       const response = await sendMessage(
         messageContent,
-        messages,
+        updatedMessages, // Pass the updated messages including the new user message
         currentConversation?._id,
         walletAddress
       );
-
+  
       if (response.error) {
         throw new Error(response.error);
       }
-
-      setMessages(response.messages);
+      
+      // Update messages with the response
+      if (response.messages) {
+        setMessages(response.messages);
+      }
       
       if (response.conversation) {
         handleConversationUpdate(response);
       }
-
+  
     } catch (error) {
       console.error('Error in handleSubmit:', error);
       setError(error instanceof Error ? error.message : 'An error occurred');
       toast.error('Failed to send message');
+      // Remove only the failed message
       setMessages(prevMessages => prevMessages.filter(msg => msg._id !== userMessage._id));
       setMessage(messageContent);
     } finally {
       setIsLoading(false);
     }
-  }, [message, messages, currentConversation, isLoading, walletAddress]);
+  }, [message, messages, currentConversation, isLoading, walletAddress]);  
 
   return (
     <DashboardLayout
