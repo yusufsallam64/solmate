@@ -7,6 +7,8 @@ interface ToolCallResult {
 }
 
 export async function handleToolCalls(toolCalls: Array<{ name: string; arguments: Record<string, any> }>): Promise<ToolCallResult[]> {
+  console.log('Handling tool calls:', toolCalls);
+  console.log(toolCalls[0].arguments)
   if (!toolCalls?.length) return [];
   const results: ToolCallResult[] = [];
   

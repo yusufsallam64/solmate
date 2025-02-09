@@ -5,6 +5,7 @@ import { DashboardLayout } from '@/lib/layouts';
 import { ChatInterface } from "@/lib/components/dashboard/ChatInterface";
 import { useSession } from "next-auth/react";
 import { handleToolCalls } from "@/lib/solana/solana";
+import { isValid } from "date-fns";
 
 export default function Dashboard() {
   const [isLoading, setIsLoading] = useState(false);
@@ -67,7 +68,7 @@ export default function Dashboard() {
     
     const messageContent = message.trim();
     setMessage("");
-
+  
     const userMessage: Message = {
       _id: `temp-${Date.now()}` as any,
       role: 'user',
@@ -76,14 +77,14 @@ export default function Dashboard() {
       userId: '' as any,
       createdAt: new Date(),
     };
-
+  
     setMessages(prevMessages => [...prevMessages, userMessage]);
   
     try {      
       console.log('Sending message to API:', messageContent);
       
       const truncatedUserMessage = { role: 'user' as const, content: messageContent };
-
+  
       const response = await fetch('/api/model/handler', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -99,60 +100,76 @@ export default function Dashboard() {
       if (!response.ok) {
         throw new Error('Failed to get response from server');
       }
-
+  
       const data = await response.json();
-      
-      if(data.messages && data.messages[data.messages.length - 1].role === 'tool') {
-        const toolArguments = JSON.parse((JSON.parse(data.messages[data.messages.length - 1].content)))[0];
-      
-        console.log('Tool arguments:', toolArguments);
-        const toolArgumentResults = JSON.parse(toolArguments.result);
+      console.log('API data response (dashboard):', data);
+  
+      // Check if data.response is a string that might contain JSON
+      let toolCalls = null;
+      if (typeof data.response === 'string') {
+        try {
+          toolCalls = JSON.parse(data.response);
+        } catch (e) {
+          // If parsing fails, data.response is a regular string message
+          console.log('Response is a regular message:', data.response);
+        }
+      }
+  
+      console.log('Tool calls:', toolCalls);
 
-
-        if(toolArguments.tool === 'transferSol') {
-          try {
-            const response = await handleToolCalls([{
-              name: 'transferSol', 
-              arguments: {
-                recipient: toolArgumentResults.recipient,
-                amount: toolArgumentResults.amount,
-                network: toolArgumentResults.network || 'devnet'
-              }
-            }]);
-
-            console.log("Response from tool call:", response);
-      
-            // Handle the response
-            if (response[0].result) {
-              toast.success('Transaction successful!');
-              // Add success message to chat
-              setMessages(prevMessages => [...prevMessages, {
-                _id: `system-${Date.now()}` as any,
-                role: 'system',
-                content: response[0].result,
-                conversationId: currentConversation?._id || ('' as any),
-                userId: '' as any,
-                createdAt: new Date(),
-              } as Message]);
-            } else if (response[0].error) {
-              throw new Error(response[0].error);
+      // Handle tool calls if present
+      if (Array.isArray(toolCalls) && toolCalls.length > 0 && toolCalls[0].tool === 'transferSol') {
+        console.log("makes it into here")
+        const toolArgumentResults = JSON.parse(toolCalls[0].result);
+        console.log("toolArgumentResults", toolArgumentResults)
+        console.log("typeof toolArgumentResults", typeof toolArgumentResults)
+        console.log("recipient: ", toolArgumentResults.recipient)
+        console.log("amount: ", toolArgumentResults.amount)
+        console.log("network: ", toolArgumentResults.network)
+        if (!toolArgumentResults?.recipient || !toolArgumentResults?.amount) {
+          throw new Error('Invalid tool arguments received');
+        }
+  
+        try {
+          const response = await handleToolCalls([{
+            name: 'transferSol', 
+            arguments: {
+              recipient: toolArgumentResults.recipient,
+              amount: toolArgumentResults.amount,
+              network: toolArgumentResults.network || 'devnet'
             }
-          } catch (error) {
-            console.error('Transaction error:', error);
-            toast.error(error instanceof Error ? error.message : 'Transaction failed');
-            // Add error message to chat
+          }]);
+  
+          console.log("Response from tool call:", response);
+    
+          if (response[0].result) {
+            toast.success('Transaction successful!');
             setMessages(prevMessages => [...prevMessages, {
               _id: `system-${Date.now()}` as any,
               role: 'system',
-              content: `Transaction failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
+              content: response[0].result,
               conversationId: currentConversation?._id || ('' as any),
               userId: '' as any,
               createdAt: new Date(),
             } as Message]);
+          } else if (response[0].error) {
+            throw new Error(response[0].error);
           }
+        } catch (error) {
+          console.error('Transaction error:', error);
+          toast.error(error instanceof Error ? error.message : 'Transaction failed');
+          setMessages(prevMessages => [...prevMessages, {
+            _id: `system-${Date.now()}` as any,
+            role: 'system',
+            content: `Transaction failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
+            conversationId: currentConversation?._id || ('' as any),
+            userId: '' as any,
+            createdAt: new Date(),
+          } as Message]);
         }
       }
       
+      // Update conversation and messages
       if (currentConversation) {
         setMessages(data.messages);
         setConversations(prevConversations => prevConversations.map(conv => 
