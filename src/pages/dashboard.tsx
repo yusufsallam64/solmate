@@ -85,17 +85,17 @@ export default function Dashboard() {
     }
   };
 
-  const handleSubmit = useCallback(async (e: React.FormEvent, messageOverride?: string) => {
+  const handleSubmit = useCallback(async (e: React.FormEvent, messageOverride?: string, isGuruMode: boolean = false) => {
     e.preventDefault();
-
+  
     const messageToSend = messageOverride || message;
-    console.log('Handling submit with message:', messageToSend);
+    console.log('Handling submit with message:', messageToSend, 'isGuruMode:', isGuruMode);
     
     if (!messageToSend.trim() || isLoading) return;
-
+  
     setIsLoading(true);
     setError("");
-
+  
     const messageContent = messageToSend.trim();
     setMessage("");
   
@@ -107,25 +107,27 @@ export default function Dashboard() {
       userId: '' as any,
       createdAt: new Date(),
     };
-
+  
     // Add user message to the messages array
     setMessages(prevMessages => [...prevMessages, userMessage]);
-
+  
     try {
       // Get the current messages to include in the API call
       const currentMessages = [...(messages || [])];
       
       const response = await sendMessage(
         messageContent,
-        currentMessages,  // Pass the full conversation history
+        currentMessages,
         currentConversation?._id,
-        walletAddress
+        walletAddress,
+        isGuruMode  // Add this parameter
       );
   
+      // ... rest of your existing code
       if (response.error) {
         throw new Error(response.error);
       }
-
+  
       // Add only the new assistant message to the existing conversation
       const assistantMessage = response.messages[response.messages.length - 1];
       setMessages(prevMessages => {
@@ -152,8 +154,8 @@ export default function Dashboard() {
     } finally {
       setIsLoading(false);
     }
-  }, [message, messages, currentConversation, isLoading, walletAddress]);  
-
+  }, [message, messages, currentConversation, isLoading, walletAddress, handleConversationUpdate]);
+  
   const handleViewToggle = useCallback(async () => {
     if (isInitializingVoice) return;
 

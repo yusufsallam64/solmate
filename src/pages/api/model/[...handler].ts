@@ -124,7 +124,9 @@ export default async function handler(
     return res.status(401).json({ error: 'Unauthorized' });
   }
 
-  const { interactionMessages, conversationId, walletAddress } = req.body;
+  const { interactionMessages, conversationId, walletAddress, isGuruMode } = req.body;
+
+  console.log("GURU MODE:", isGuruMode);
   if (!interactionMessages?.length) {
     return res.status(400).json({ error: 'Messages are required' });
   }

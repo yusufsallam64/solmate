@@ -1,12 +1,12 @@
-import { FormEvent } from "react";
-import { ArrowUp } from "lucide-react";
+import { FormEvent, useState } from "react";
+import { ArrowUp, Brain } from "lucide-react";
 
 interface MessageInputProps {
   message: string;
   setMessage: (message: string) => void;
   error: string;
   isLoading: boolean;
-  onSubmit: (e: FormEvent) => Promise<void>;
+  onSubmit: (e: FormEvent, isGuruMode?: boolean) => Promise<void>;
 }
 
 const MessageInput = ({
@@ -16,9 +16,16 @@ const MessageInput = ({
   isLoading,
   onSubmit,
 }: MessageInputProps) => {
+  const [isGuruMode, setIsGuruMode] = useState(false);
+  const [showTooltip, setShowTooltip] = useState(false);
+
+  const handleSubmit = async (e: FormEvent) => {
+    await onSubmit(e, undefined, isGuruMode);
+};
+
   return (
     <div>
-      <form onSubmit={onSubmit} className="px-4 pb-4">
+      <form onSubmit={handleSubmit} className="px-4 pb-4">
         <div className="relative">
           <div className="relative">
             <textarea
@@ -27,11 +34,11 @@ const MessageInput = ({
               onKeyDown={(e) => {
                 if (e.key === "Enter" && !e.shiftKey) {
                   e.preventDefault();
-                  onSubmit(e);
+                  handleSubmit(e);
                 }
               }}
               placeholder="Ask a question..."
-              className="w-full py-4 px-4 rounded-2xl shadow-lg border border-primary-200/30 
+              className="w-full py-4 pl-14 pr-12 rounded-2xl shadow-lg border border-primary-200/30 
                        bg-primary/30 text-text-50 text-base placeholder:text-text-100/40
                        disabled:placeholder:text-primary-100/5 resize-none outline-hidden
                        focus:border-accent/30 min-h-[3rem] max-h-48
@@ -46,6 +53,40 @@ const MessageInput = ({
                 target.style.height = `${target.scrollHeight}px`;
               }}
             />
+            
+            {/* Brain Button with Custom Tooltip */}
+            <div className="absolute left-3 top-3.5">
+              <button
+                type="button"
+                onClick={() => setIsGuruMode(!isGuruMode)}
+                onMouseEnter={() => setShowTooltip(true)}
+                onMouseLeave={() => setShowTooltip(false)}
+                className={`p-2 rounded-full transition-all duration-300 
+                ${
+                  isGuruMode
+                    ? "bg-accent-500 text-white"
+                    : "hover:bg-primary/50 text-text-50"
+                }`}
+                disabled={isLoading}
+              >
+                <Brain className="w-5 h-5" />
+              </button>
+              
+              {/* Custom Tooltip */}
+              <div
+                className={`absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 
+                text-sm text-white bg-gray-800 rounded shadow-lg whitespace-nowrap
+                transition-opacity duration-200 pointer-events-none z-10
+                ${showTooltip ? 'opacity-100' : 'opacity-0'}`}
+              >
+                Crypto Guru
+                {/* Tooltip Arrow */}
+                <div className="absolute top-full left-1/2 transform -translate-x-1/2 -mt-1">
+                  <div className="border-4 border-transparent border-t-gray-800" />
+                </div>
+              </div>
+            </div>
+
             {/* Submit Button */}
             <div
               className={`absolute right-3 top-3.5 transition-all duration-500 ease-out
@@ -68,7 +109,7 @@ const MessageInput = ({
                 {isLoading ? (
                   <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                 ) : (
-                  <ArrowUp className="w-5 h-5 " strokeWidth={3} />
+                  <ArrowUp className="w-5 h-5" strokeWidth={3} />
                 )}
               </button>
             </div>
