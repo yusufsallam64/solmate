@@ -165,4 +165,37 @@ export class DatabaseService {
       .sort({ createdAt: 1 })
       .toArray();
   }
+
+  static async deleteUserData(userId: ObjectId): Promise<void> {
+    const client = await clientPromise;
+    const conversations = await getCollection<Conversation>('conversations');
+    const messages = await getCollection<Message>('messages');
+  
+    const session = client.startSession();
+  
+    try {
+      await session.withTransaction(async () => {
+        // Find all conversations for this user
+        const userConversations = await conversations
+          .find({ userId }, { session })
+          .toArray();
+  
+        const conversationIds = userConversations.map(conv => conv._id);
+  
+        // Delete all messages from these conversations
+        if (conversationIds.length > 0) {
+          await messages.deleteMany({
+            conversationId: { $in: conversationIds }
+          }, { session });
+        }
+  
+        // Delete all conversations
+        await conversations.deleteMany({
+          userId
+        }, { session });
+      });
+    } finally {
+      await session.endSession();
+    }
+  }
 }

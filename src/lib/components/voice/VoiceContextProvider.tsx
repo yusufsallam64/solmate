@@ -21,7 +21,7 @@ export const VoiceProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     useEffect(() => {
         const fetchVoiceSettings = async () => {
             try {
-                const response = await fetch('/api/user/voice-settings');
+                const response = await fetch('/api/elevenlabs/voice-settings');
                 if (response.ok) {
                     const data = await response.json();
                     setVoiceName(data.voiceName);

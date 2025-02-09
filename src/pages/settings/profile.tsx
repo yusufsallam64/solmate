@@ -11,6 +11,7 @@ interface UserProfile {
   name: string;
   email: string;
   createdAt: string;
+  imageUrl?: string;
 }
 
 export default function ProfileSettings() {
@@ -46,15 +47,15 @@ export default function ProfileSettings() {
       setIsDeleting(true);
       setError('');
 
-      const response = await fetch('/api/problemsets/delete-all', {
-        method: 'DELETE',
+      const response = await fetch('/api/user/delete-data', {
+        method: 'DELETE'
       });
 
       if (!response.ok) {
         throw new Error('Failed to delete data');
       }
 
-      setSuccess('All your problem sets and related data have been deleted successfully.');
+      setSuccess('All your conversations and messages have been deleted successfully.');
       setShowConfirm(false);
     } catch (err) {
       setError('Failed to delete your data. Please try again.');
@@ -118,7 +119,7 @@ export default function ProfileSettings() {
                           <span className="font-medium">Delete Account Data</span>
                         </div>
                         <p className="text-sm text-text-50">
-                          This action will permanently delete all your data.
+                          This action will permanently delete all your conversations and messages.
                         </p>
                         <div>
                           <button
@@ -126,7 +127,7 @@ export default function ProfileSettings() {
                             disabled={isDeleting}
                             className="px-4 py-2 rounded-lg bg-red-500/10 text-red-400 border border-red-500/20 hover:bg-red-500/20 hover:border-red-500/30 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
                           >
-                            Delete All Problem Sets
+                            Delete All Data
                           </button>
                         </div>
                       </div>
@@ -154,44 +155,61 @@ export default function ProfileSettings() {
         <Modal
           isOpen={showConfirm}
           onClose={() => setShowConfirm(false)}
-          title="Delete All Problem Sets"
+          title="Delete All Data"
         >
           <div className="space-y-6">
-            <div className="p-4 rounded-xl bg-red-500/5 border border-red-500/20 backdrop-blur-sm">
-              <div className="flex items-start gap-3">
-                <AlertTriangle className="w-5 h-5 text-red-400 mt-0.5" />
-                <div>
-                  <p className="text-primary-100 font-medium mb-2">
-                    Are you sure you want to delete all data?
-                  </p>
-                  <p className="text-sm text-primary-100">
-                    This will permanently delete all your data. This action cannot be undone.
-                  </p>
+            {/* Updated warning container with design matching main UI */}
+            <div className="relative">
+              {/* Ambient glow effect */}
+              <div className="absolute inset-0 bg-red-500/5 rounded-xl filter blur-sm" />
+              
+              {/* Content container */}
+              <div className="relative p-6 rounded-xl bg-background-900/40 backdrop-blur-xl border border-red-500/20">
+                <div className="flex items-start gap-4">
+                  <AlertTriangle className="w-6 h-6 text-red-400 mt-0.5" />
+                  <div className="space-y-3">
+                    <p className="text-lg font-semibold text-primary-100">
+                      Are you sure you want to delete all your data?
+                    </p>
+                    <p className="text-sm text-text-50 leading-relaxed">
+                      This will permanently delete all your conversations and messages. 
+                      This action cannot be undone.
+                    </p>
+                  </div>
                 </div>
               </div>
             </div>
 
+            {/* Updated button container */}
             <div className="flex justify-end gap-3">
               <button
                 onClick={() => setShowConfirm(false)}
                 disabled={isDeleting}
-                className="px-4 py-2 rounded-lg bg-accent-500/10 text-primary-100 border border-primary-200/30 hover:bg-accent-500/20 hover:border-accent-500/30 transition-all duration-200 disabled:opacity-50"
+                className="px-4 py-2 rounded-lg bg-background-900/40 backdrop-blur-sm text-primary-100 border border-primary-200/30 hover:bg-accent-500/10 hover:border-accent-500/30 transition-all duration-200 disabled:opacity-50"
               >
                 Cancel
               </button>
+              
+              {/* Delete button with matching glow effect */}
               <button
                 onClick={handleDeleteAllData}
                 disabled={isDeleting}
-                className="px-4 py-2 rounded-lg bg-red-500/10 text-red-400 border border-red-500/20 hover:bg-red-500/20 hover:border-red-500/30 transition-all duration-200 disabled:opacity-50"
+                className="relative group px-4 py-2 rounded-lg bg-red-500/10 text-red-400 border border-red-500/20 hover:bg-red-500/20 hover:border-red-500/30 transition-all duration-200 disabled:opacity-50"
               >
-                {isDeleting ? (
-                  <span className="flex items-center gap-2">
-                    <LoaderCircle className="animate-spin w-4 h-4" />
-                    Deleting...
-                  </span>
-                ) : (
-                  'Yes, Delete Everything'
-                )}
+                {/* Hover glow effect */}
+                <div className="absolute inset-0 bg-red-500/20 rounded-lg filter blur-sm opacity-0 group-hover:opacity-100 transition-opacity duration-200" />
+                
+                {/* Button content */}
+                <div className="relative flex items-center gap-2">
+                  {isDeleting ? (
+                    <>
+                      <LoaderCircle className="animate-spin w-4 h-4" />
+                      <span>Deleting...</span>
+                    </>
+                  ) : (
+                    'Yes, Delete Everything'
+                  )}
+                </div>
               </button>
             </div>
           </div>
