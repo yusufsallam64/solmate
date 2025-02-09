@@ -1,5 +1,5 @@
 import React from 'react';
-import { User, CreditCard, LogOut } from 'lucide-react';
+import { User, CreditCard, LogOut, LinkIcon } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 import { signOut, useSession } from 'next-auth/react';
@@ -32,6 +32,7 @@ const SettingsLayout: React.FC<SettingsLayoutProps> = ({ children }) => {
 
   const navItems = [
     { href: '/settings/profile', label: 'Profile', icon: User },
+    { href: '/settings/alias', label: 'Aliases', icon: LinkIcon },
   ];
 
   return (

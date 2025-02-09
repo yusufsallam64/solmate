@@ -4,6 +4,7 @@ export const DB_CONFIG = {
     users: 'users',
     conversations: 'conversations',
     messages: 'messages',
+    aliases: 'aliases',
     accounts: 'accounts',
     sessions: 'sessions',
     verificationTokens: 'verification_tokens'
