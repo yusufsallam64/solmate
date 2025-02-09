@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { MessageSquare, Plus } from 'lucide-react';
+import { MessageSquare, Plus, Wallet } from 'lucide-react';
 import { useRouter } from 'next/router';
 import { Conversation } from '@/lib/db/types';
 import { formatDistanceToNow } from 'date-fns';
@@ -36,69 +36,68 @@ const Sidebar: React.FC<SidebarProps> = ({
   };
 
   return (
-    <div className={`md:static top-16 bg-primary-900 border-r border-accent/10 transition-all duration-300 h-[calc(100vh-4rem)] ${isOpen ? 'w-full md:w-64' : 'w-0 overflow-hidden'}`}>
-      <div className="h-full flex flex-col min-w-[16rem]">
-        <div className="flex-none flex items-center justify-between p-4 border-b border-accent/10">
-          <h2 className="text-lg font-semibold text-primary-100">Conversations</h2>
+    <div className={`md:static top-16 bg-background-900/30 backdrop-blur-xl border-r border-primary-200/30 shadow-lg transition-all duration-300 h-[calc(100vh-4rem)] ${isOpen ? 'w-full md:w-72' : 'w-0 overflow-hidden'}`}>
+      <div className="h-full flex flex-col min-w-[18rem]">
+        <div className="flex-none flex items-center justify-between px-6 py-4 border-b border-primary-200/30 bg-gradient-to-r from-background-900/50 to-background-950/50">
+          <h2 className="text-lg font-title text-secondary-500">Transactions</h2>
           <button
             onClick={onNewChat}
-            className="p-2 rounded-lg hover:bg-accent/10 transition-colors duration-200 text-accent"
-            title="New Chat"
+            className="p-2 rounded-lg bg-accent-500/10 hover:bg-accent-500/20 transition-all duration-200 text-accent-400 hover:text-accent-300 hover:shadow-[0_0_15px_rgba(99,102,241,0.3)] hover:border hover:border-accent-500/30"
+            title="New Transaction"
           >
             <Plus size={20} />
           </button>
         </div>
 
-        <div className="flex-1 overflow-y-auto p-4 space-y-2">
+        <div className="flex-1 overflow-y-auto p-6 space-y-4 scrollbar-thin scrollbar-thumb-primary-200/30 scrollbar-track-transparent">
           {conversations.length === 0 ? (
-            <div className="text-center p-4 text-primary-200">
-              <p>No conversations yet</p>
-              <button
-                onClick={onNewChat}
-                className="mt-2 text-sm text-accent hover:text-accent-500 transition-colors duration-200"
-              >
-                Start a new chat
-              </button>
+            <div className="h-full flex flex-col items-center justify-center space-y-6 text-center p-8">
+              <div className="relative">
+                <Wallet size={64} className="text-accent-400 opacity-50" />
+                <div className="absolute inset-0 bg-primary-200/30 blur-xl animate-pulse-slow" />
+              </div>
+              <div>
+                <h2 className="text-2xl font-title text-accent-400 mb-2">No transactions yet</h2>
+                <p className="text-primary-300 mb-4">Start your first transaction</p>
+                <button
+                  onClick={onNewChat}
+                  className="px-4 py-2 rounded-lg bg-accent-500 text-white hover:bg-accent-600 transition-all duration-200 font-medium shadow-md hover:shadow-[0_0_20px_rgba(99,102,241,0.4)]"
+                >
+                  New Transaction
+                </button>
+              </div>
             </div>
           ) : (
-            <>
+            <div className="flex flex-col space-y-4">
               {conversations.slice(0, displayCount).map((conversation) => (
                 <button
                   key={conversation._id.toString()}
                   onClick={() => handleConversationClick(conversation._id.toString())}
-                  className={`w-full p-3 text-left rounded-lg transition-colors duration-200 group
+                  className={`group w-full p-4 text-left rounded-xl backdrop-blur-sm transition-all duration-300 border
                     ${currentConversation?._id.toString() === conversation._id.toString()
-                      ? 'bg-accent/20 hover:bg-accent/25'
-                      : 'hover:bg-accent/10'}`}
+                      ? 'bg-accent-500/10 border-accent-500/20 hover:border-accent-500/30 hover:shadow-[0_0_15px_rgba(99,102,241,0.3)]'
+                      : 'bg-background-950/50 border-secondary-500/20 hover:border-secondary-500/30 hover:shadow-[0_0_15px_rgba(148,163,184,0.2)] hover:bg-background-900/50'}`}
                 >
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <MessageSquare size={16} className="text-accent" />
-                      <span className="text-primary-100 group-hover:text-primary-200 truncate">
-                        {conversation.title}
-                      </span>
+                  <div className="flex items-center gap-3">
+                    <div className="p-1.5 rounded-lg bg-accent-500/10 text-accent-400 group-hover:text-accent-300 transition-colors duration-200">
+                      <MessageSquare size={14} />
                     </div>
-                    <span className="text-xs text-primary-300">
-                      {formatDistanceToNow(new Date(conversation.lastMessageAt), { addSuffix: true })}
+                    <span className="text-text-50 group-hover:text-primary-50 truncate font-medium">
+                      {conversation.title}
                     </span>
                   </div>
-                  {conversation.messageCount > 0 && (
-                    <div className="mt-1 text-xs text-primary-300">
-                      {conversation.messageCount} message{conversation.messageCount !== 1 ? 's' : ''}
-                    </div>
-                  )}
                 </button>
               ))}
               
               {conversations.length > displayCount && (
                 <button
                   onClick={() => setDisplayCount(prev => prev + conversationCount)}
-                  className="w-full mt-2 py-1 text-center text-sm text-accent hover:text-accent/80 transition-colors duration-200"
+                  className="w-full py-2 text-center text-sm text-accent-400 hover:text-accent-300 transition-all duration-200 rounded-lg bg-background-950/50 hover:bg-accent-500/20 hover:shadow-[0_0_15px_rgba(99,102,241,0.2)] border border-secondary-500/20 hover:border-accent-500/30"
                 >
                   Show More
                 </button>
               )}
-            </>
+            </div>
           )}
         </div>
       </div>

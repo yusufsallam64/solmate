@@ -31,10 +31,10 @@ const MessageInput = ({
                 }
               }}
               placeholder="Ask a question..."
-              className="w-full py-4 pl-16 pr-16 rounded-2xl shadow-lg border border-accent/20 
-                       bg-primary/30 text-primary-100 text-base placeholder:text-primary-300/50
-                       disabled:placeholder:text-primary-300/20 resize-none outline-hidden
-                       focus:border-accent/30 min-h-[4rem] max-h-48
+              className="w-full py-4 px-4 rounded-2xl shadow-lg border border-primary-200/30 
+                       bg-primary/30 text-text-50 text-base placeholder:text-text-100/40
+                       disabled:placeholder:text-primary-100/5 resize-none outline-hidden
+                       focus:border-accent/30 min-h-[3rem] max-h-48
                        transition-all duration-300 leading-relaxed
                        disabled:cursor-not-allowed"
               disabled={isLoading}
@@ -68,7 +68,7 @@ const MessageInput = ({
                 {isLoading ? (
                   <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                 ) : (
-                  <ArrowUp className="w-5 h-5" strokeWidth={3} />
+                  <ArrowUp className="w-5 h-5 " strokeWidth={3} />
                 )}
               </button>
             </div>
