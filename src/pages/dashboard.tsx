@@ -116,8 +116,16 @@ export default function Dashboard() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [currentConversation, setCurrentConversation] = useState<Conversation | undefined>(undefined);
   const [conversations, setConversations] = useState<Conversation[]>([]);
+  // Add new view state
+  const [view, setView] = useState<'chat' | 'alternate'>('chat');
   const { data: session } = useSession();
   const walletAddress = session?.user.walletAddress;
+
+  // Add view toggle handler
+  const handleViewToggle = useCallback(() => {
+    setView(current => current === 'chat' ? 'alternate' : 'chat');
+  }, []);
+
 
   // Load conversations on mount
   useEffect(() => {
@@ -373,6 +381,8 @@ export default function Dashboard() {
           error={error}
           isLoading={isLoading}
           handleSubmit={handleSubmit}
+          view={view}
+          onViewToggle={handleViewToggle}
         />
       </div>
     </DashboardLayout>

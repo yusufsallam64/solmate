@@ -4,7 +4,7 @@ import { Card, CardHeader, CardContent } from '@/lib/components/ui/card';
 import SettingsLayout from '@/lib/layouts/SettingsLayout';
 import { UserAvatar } from '@/lib/components/header';
 import Modal from '@/lib/components/ui/Modal';
-import { LoaderCircle } from 'lucide-react';
+import { LoaderCircle, AlertTriangle } from 'lucide-react';
 
 interface UserProfile {
   name: string;
@@ -65,104 +65,135 @@ export default function ProfileSettings() {
 
   return (
     <SettingsLayout>
-      <Card>
-        <CardHeader>
-          <h1 className="text-2xl font-bold text-primary-100">Profile Settings</h1>
-        </CardHeader>
-        {isLoading ? (
-          <div className="flex justify-center p-6">
-            <LoaderCircle className="animate-spin text-accent-400 w-6 h-6" />
+      <div className="space-y-8">
+        {/* Profile Card */}
+        <div className="bg-background-900/40 backdrop-blur-xl border border-primary-200/30 rounded-xl overflow-hidden shadow-[0_0_20px_rgba(99,102,241,0.1)]">
+          <div className="px-6 py-4 border-b border-primary-200/30 bg-gradient-to-r from-background-900/50 to-background-950/50">
+            <h1 className="text-2xl font-bold text-primary-100">Profile Settings</h1>
           </div>
-        ) : (
-          <CardContent>
-            <div className="space-y-6">
-              <div className="flex items-start space-x-6">
-                <UserAvatar session={session} size={1.4} />
 
-                <div className="flex flex-col space-y-4">
-                  <div>
+          {isLoading ? (
+            <div className="flex justify-center p-8">
+              <LoaderCircle className="animate-spin text-accent-400 w-8 h-8" />
+            </div>
+          ) : (
+            <div className="p-6">
+              <div className="space-y-8">
+                <div className="flex items-start gap-6">
+                  <div className="relative">
+                    <div className="absolute -inset-0.5 bg-accent-500/20 rounded-full blur opacity-50" />
+                    <UserAvatar session={session} size={1.4} />
+                  </div>
+
+                  <div className="flex flex-col space-y-2">
                     {profile?.name && (
                       <div>
-                        <p className="text-xl font-semibold text-primary-100">
+                        <h2 className="text-xl font-semibold text-primary-100">
                           {profile.name}
-                        </p>
+                        </h2>
                       </div>
                     )}
-                    <div className="mt-1">
-                      <p className="text-sm text-primary-300">{profile?.email}</p>
+                    <div>
+                      <p className="text-text-50">{profile?.email}</p>
                     </div>
+                    {profile?.createdAt && (
+                      <div className="text-sm text-text-50">
+                        Member since {new Date(profile.createdAt).toLocaleDateString()}
+                      </div>
+                    )}
                   </div>
-
-                  {profile?.createdAt && (
-                    <div className="text-sm text-primary-300">
-                      Member since {new Date(profile.createdAt).toLocaleDateString()}
-                    </div>
-                  )}
                 </div>
-              </div>
 
-              {/* Danger Zone */}
-              <div className="pt-6 mt-6 border-t border-accent/10">
-                <div className="flex flex-col justify-between ">
-                  <div className="pb-4">
+                {/* Danger Zone */}
+                <div className="pt-8 mt-8 border-t border-primary-200/30">
+                  <div className="space-y-4">
                     <h2 className="text-lg font-semibold text-primary-100">Danger Zone</h2>
+                    <div className="p-4 rounded-xl bg-red-500/5 border border-red-500/20 backdrop-blur-sm">
+                      <div className="flex flex-col gap-4">
+                        <div className="flex items-center gap-2 text-red-400">
+                          <AlertTriangle size={20} />
+                          <span className="font-medium">Delete Account Data</span>
+                        </div>
+                        <p className="text-sm text-text-50">
+                          This action will permanently delete all your data.
+                        </p>
+                        <div>
+                          <button
+                            onClick={() => setShowConfirm(true)}
+                            disabled={isDeleting}
+                            className="px-4 py-2 rounded-lg bg-red-500/10 text-red-400 border border-red-500/20 hover:bg-red-500/20 hover:border-red-500/30 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                          >
+                            Delete All Problem Sets
+                          </button>
+                        </div>
+                      </div>
+                    </div>
                   </div>
-                  <div>
-                    <button
-                      onClick={() => setShowConfirm(true)}
-                      disabled={isDeleting}
-                      className="bg-red-500/10 text-red-500 hover:bg-red-500/20 px-4 py-2 rounded-sm disabled:opacity-50"
-                    >
-                      Delete All Problem Sets
-                    </button>
+                </div>
+
+                {error && (
+                  <div className="p-4 rounded-xl bg-red-500/5 border border-red-500/20 text-red-400">
+                    {error}
                   </div>
+                )}
+
+                {success && (
+                  <div className="p-4 rounded-xl bg-emerald-500/5 border border-emerald-500/20 text-emerald-400">
+                    {success}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Confirmation Modal */}
+        <Modal
+          isOpen={showConfirm}
+          onClose={() => setShowConfirm(false)}
+          title="Delete All Problem Sets"
+        >
+          <div className="space-y-6">
+            <div className="p-4 rounded-xl bg-red-500/5 border border-red-500/20 backdrop-blur-sm">
+              <div className="flex items-start gap-3">
+                <AlertTriangle className="w-5 h-5 text-red-400 mt-0.5" />
+                <div>
+                  <p className="text-primary-100 font-medium mb-2">
+                    Are you sure you want to delete all data?
+                  </p>
+                  <p className="text-sm text-primary-100">
+                    This will permanently delete all your data. This action cannot be undone.
+                  </p>
                 </div>
               </div>
-
-              {error && (
-                <div className="bg-red-500/10 text-red-500 p-4 rounded-sm">
-                  {error}
-                </div>
-              )}
-
-              {success && (
-                <div className="bg-green-500/10 text-green-500 p-4 rounded-sm">
-                  {success}
-                </div>
-              )}
             </div>
-          </CardContent>
-        )}
 
-      </Card>
-
-      <Modal
-        isOpen={showConfirm}
-        onClose={() => setShowConfirm(false)}
-        title="Delete All Problem Sets"
-      >
-        <div className="space-y-4">
-          <p className="text-primary-200">
-            Are you sure? This will permanently delete all your problem sets, problems, and messages.
-          </p>
-          <div className="flex justify-end space-x-3 mt-6">
-            <button
-              onClick={() => setShowConfirm(false)}
-              disabled={isDeleting}
-              className="bg-accent/10 text-primary-200 hover:bg-accent/20 px-4 py-2 rounded-sm disabled:opacity-50"
-            >
-              Cancel
-            </button>
-            <button
-              onClick={handleDeleteAllData}
-              disabled={isDeleting}
-              className="bg-red-500/10 text-red-500 hover:bg-red-500/20 px-4 py-2 rounded-sm disabled:opacity-50"
-            >
-              {isDeleting ? 'Deleting...' : 'Yes, Delete Everything'}
-            </button>
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={() => setShowConfirm(false)}
+                disabled={isDeleting}
+                className="px-4 py-2 rounded-lg bg-accent-500/10 text-primary-100 border border-primary-200/30 hover:bg-accent-500/20 hover:border-accent-500/30 transition-all duration-200 disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleDeleteAllData}
+                disabled={isDeleting}
+                className="px-4 py-2 rounded-lg bg-red-500/10 text-red-400 border border-red-500/20 hover:bg-red-500/20 hover:border-red-500/30 transition-all duration-200 disabled:opacity-50"
+              >
+                {isDeleting ? (
+                  <span className="flex items-center gap-2">
+                    <LoaderCircle className="animate-spin w-4 h-4" />
+                    Deleting...
+                  </span>
+                ) : (
+                  'Yes, Delete Everything'
+                )}
+              </button>
+            </div>
           </div>
-        </div>
-      </Modal>
+        </Modal>
+      </div>
     </SettingsLayout>
   );
 }

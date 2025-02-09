@@ -1,26 +1,31 @@
 import React from 'react';
-import { Camera, MessageSquare } from 'lucide-react';
+import { Camera, Layout, MessageSquare } from 'lucide-react';
 
 interface ViewToggleButtonProps {
-   view: 'chat' | 'capture';
+   view: 'chat' | 'alternate';
    onToggle: () => void;
 }
-
-
+ 
 const ViewToggleButton: React.FC<ViewToggleButtonProps> = ({ view, onToggle }) => {
    return (
       <button
          onClick={onToggle}
-         className="h-10 w-10 rounded-full bg-accent/10 hover:bg-accent/20 transition-colors duration-200 flex items-center justify-center md:hidden"
-         title={view === 'chat' ? 'Switch to Screen Capture' : 'Switch to Chat'}
+         className="p-2 rounded-lg hover:bg-accent/10 transition-colors duration-200 text-primary-200 hover:text-primary-100 flex items-center gap-2"
+         title={view === 'chat' ? 'Switch to Alternate View' : 'Switch to Chat'}
       >
          {view === 'chat' ? (
-            <Camera size={20} className="text-accent" />
+         <>
+            <MessageSquare size={18} />
+            <span className="text-sm">Chat View</span>
+         </>
          ) : (
-            <MessageSquare size={20} className="text-accent" />
+         <>
+            <Layout size={18} />
+            <span className="text-sm">Alternate View</span>
+         </>
          )}
       </button>
-   );
+);
 };
 
 export default ViewToggleButton;
