@@ -76,10 +76,10 @@ const MessageInput = ({
               <div
                 className={`absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 
                 text-sm text-white bg-gray-800 rounded shadow-lg whitespace-nowrap
-                transition-opacity duration-200 pointer-events-none z-10
+                transition-opacity duration-200 pointer-events-none z-50
                 ${showTooltip ? 'opacity-100' : 'opacity-0'}`}
               >
-                Crypto Guru
+                GURU MODE
                 {/* Tooltip Arrow */}
                 <div className="absolute top-full left-1/2 transform -translate-x-1/2 -mt-1">
                   <div className="border-4 border-transparent border-t-gray-800" />
