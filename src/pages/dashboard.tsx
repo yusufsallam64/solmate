@@ -13,16 +13,10 @@ export default function Dashboard() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [currentConversation, setCurrentConversation] = useState<Conversation | undefined>(undefined);
   const [conversations, setConversations] = useState<Conversation[]>([]);
-  // Add new view state
-  const [view, setView] = useState<'chat' | 'alternate'>('chat');
+  const [view, setView] = useState<'chat' | 'voice'>('chat');
+  const [isInitializingVoice, setIsInitializingVoice] = useState(false);
   const { data: session } = useSession();
   const walletAddress = session?.user.walletAddress;
-
-  // Add view toggle handler
-  const handleViewToggle = useCallback(() => {
-    setView(current => current === 'chat' ? 'alternate' : 'chat');
-  }, []);
-
 
   // Load conversations on mount
   useEffect(() => {
@@ -42,16 +36,17 @@ export default function Dashboard() {
   }, []);
 
   const handleConversationChange = async (conversationId: string) => {
-    console.log('Changing conversation to:', conversationId);
     try {
       const response = await fetch(`/api/conversations/${conversationId}`);
       if (!response.ok) throw new Error('Failed to fetch conversation');
 
       const data = await response.json();
-      console.log('Loaded conversation data:', data);
-
       setCurrentConversation(data.conversation);
       setMessages(data.messages);
+      // Only reset to chat view if we're changing conversations
+      if (currentConversation?._id !== conversationId) {
+        setView('chat');
+      }
     } catch (error) {
       console.error('Error fetching conversation:', error);
       toast.error('Failed to load conversation');
@@ -59,10 +54,10 @@ export default function Dashboard() {
   };
 
   const handleNewChat = useCallback(() => {
-    console.log('Starting new chat');
     setCurrentConversation(undefined);
     setMessages([]);
     setMessage("");
+    setView('chat');
   }, []);
 
   const handleConversationUpdate = (data: any) => {
@@ -86,15 +81,18 @@ export default function Dashboard() {
     }
   };
 
-  const handleSubmit = useCallback(async (e: React.FormEvent) => {
+  const handleSubmit = useCallback(async (e: React.FormEvent, messageOverride?: string) => {
     e.preventDefault();
 
-    if (!message.trim() || isLoading) return;
+    const messageToSend = messageOverride || message;
+    console.log('Handling submit with message:', messageToSend);
+    
+    if (!messageToSend.trim() || isLoading) return;
 
     setIsLoading(true);
     setError("");
 
-    const messageContent = message.trim();
+    const messageContent = messageToSend.trim();
     setMessage("");
 
     const userMessage: Message = {
@@ -106,12 +104,16 @@ export default function Dashboard() {
       createdAt: new Date(),
     };
 
+    // Add user message to the messages array
     setMessages(prevMessages => [...prevMessages, userMessage]);
 
     try {
+      // Get the current messages to include in the API call
+      const currentMessages = [...(messages || [])];
+      
       const response = await sendMessage(
         messageContent,
-        messages,
+        currentMessages,  // Pass the full conversation history
         currentConversation?._id,
         walletAddress
       );
@@ -120,7 +122,17 @@ export default function Dashboard() {
         throw new Error(response.error);
       }
 
-      setMessages(response.messages);
+      // Add only the new assistant message to the existing conversation
+      const assistantMessage = response.messages[response.messages.length - 1];
+      setMessages(prevMessages => {
+        // Remove any temporary messages
+        const withoutTemp = prevMessages.filter(msg => msg._id !== userMessage._id);
+        // Add the permanent user message and the new assistant message
+        return [...withoutTemp, 
+          { ...userMessage, _id: response.messages[response.messages.length - 2]._id }, // Use permanent ID
+          assistantMessage
+        ];
+      });
       
       if (response.conversation) {
         handleConversationUpdate(response);
@@ -136,6 +148,37 @@ export default function Dashboard() {
       setIsLoading(false);
     }
   }, [message, messages, currentConversation, isLoading, walletAddress]);
+
+  const handleViewToggle = useCallback(async () => {
+    // If we're already initializing, don't do anything
+    if (isInitializingVoice) return;
+
+    const newView = view === 'chat' ? 'voice' : 'chat';
+    console.log('Attempting to toggle view from:', view, 'to:', newView);
+
+    // If switching to voice mode, initialize it first
+    if (newView === 'voice') {
+      setIsInitializingVoice(true);
+      try {
+        // Try to initialize voice capabilities
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        stream.getTracks().forEach(track => track.stop());
+        
+        // If we got here, permissions were granted
+        setView(newView);
+      } catch (error) {
+        console.error('Failed to initialize voice mode:', error);
+        toast.error('Could not enable voice mode. Please check microphone permissions.');
+        // Don't change the view if initialization failed
+        return;
+      } finally {
+        setIsInitializingVoice(false);
+      }
+    } else {
+      // If switching to chat mode, just do it
+      setView(newView);
+    }
+  }, [view, isInitializingVoice]);
 
   return (
     <DashboardLayout
