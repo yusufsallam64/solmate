@@ -94,7 +94,7 @@ export default function Dashboard() {
 
     const messageContent = messageToSend.trim();
     setMessage("");
-
+  
     const userMessage: Message = {
       _id: `temp-${Date.now()}` as any,
       role: 'user',
@@ -117,7 +117,7 @@ export default function Dashboard() {
         currentConversation?._id,
         walletAddress
       );
-
+  
       if (response.error) {
         throw new Error(response.error);
       }
@@ -137,17 +137,18 @@ export default function Dashboard() {
       if (response.conversation) {
         handleConversationUpdate(response);
       }
-
+  
     } catch (error) {
       console.error('Error in handleSubmit:', error);
       setError(error instanceof Error ? error.message : 'An error occurred');
       toast.error('Failed to send message');
+      // Remove only the failed message
       setMessages(prevMessages => prevMessages.filter(msg => msg._id !== userMessage._id));
       setMessage(messageContent);
     } finally {
       setIsLoading(false);
     }
-  }, [message, messages, currentConversation, isLoading, walletAddress]);
+  }, [message, messages, currentConversation, isLoading, walletAddress]);  
 
   const handleViewToggle = useCallback(async () => {
     // If we're already initializing, don't do anything

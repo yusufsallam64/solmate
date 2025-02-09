@@ -1,3 +1,4 @@
+// message-handler.ts
 import { Message } from '../db/types';
 import { executeToolResponse } from './tool-executor';
 import { toast } from 'react-hot-toast';
@@ -8,10 +9,10 @@ export interface MessageResponse {
   error?: string;
 }
 
-export async function handleModelResponse(
+export const handleModelResponse = async (
   data: any,
   currentConversationId?: string,
-): Promise<MessageResponse> {
+): Promise<MessageResponse> => {
   if (!data.response) {
     throw new Error('No response received from model');
   }
@@ -54,7 +55,7 @@ export async function handleModelResponse(
       };
     }
 
-    // If response was JSON but not tool calls, return original messages
+    // If response was JSON but not tool calls, return the messages from the API
     return {
       messages: data.messages || [],
       conversation: data.conversation
@@ -68,14 +69,14 @@ export async function handleModelResponse(
       error: error instanceof Error ? error.message : 'Error processing response'
     };
   }
-}
+};
 
-export async function sendMessage(
+export const sendMessage = async (
   messageContent: string,
   messages: Message[],
   currentConversationId?: string,
   walletAddress?: string
-): Promise<MessageResponse> {
+): Promise<MessageResponse> => {
   const response = await fetch('/api/model/handler', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -96,4 +97,4 @@ export async function sendMessage(
   console.log('API data response:', data);
 
   return handleModelResponse(data, currentConversationId);
-}
+};

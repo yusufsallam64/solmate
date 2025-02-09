@@ -76,6 +76,20 @@ export async function executeToolResponse(
         throw new Error('Invalid transfer result');
       }
 
+      case 'checkCryptoPrice': {
+        return {
+          success: true,
+          message: {
+            _id: `system-${Date.now()}` as any,
+            role: 'system',
+            content: `The current price of ${toolResult.symbol} is $${toolResult.price.toFixed(2)} USD`,
+            conversationId: conversationId || ('' as any),
+            userId: '' as any,
+            createdAt: new Date(),
+          }
+        };
+      }
+
       default:
         throw new Error(`Unknown tool: ${toolCall.tool}`);
     }

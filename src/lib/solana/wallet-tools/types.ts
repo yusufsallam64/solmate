@@ -67,69 +67,86 @@ export type ToolDefinition = {
  };
  
  export const AVAILABLE_TOOLS: ToolDefinition[] = [
-   {
-     type: 'function',
-     function: {
-       name: 'checkBalance',
-       description: 'Check SOL balance of a Solana wallet address',
-       parameters: {
-         type: 'object',
-         properties: {
-           address: {
-             type: 'string',
-             description: 'Solana wallet address to check balance for'
-           }
-         },
-         required: ['address']
-       }
-     }
-   },
-   {
-     type: 'function',
-     function: {
-       name: 'transferSol',
-       description: 'Initiate a SOL transfer to another wallet address',
-       parameters: {
-         type: 'object',
-         properties: {
-           recipient: {
-             type: 'string',
-             description: 'Solana wallet address to send SOL to'
-           },
-           amount: {
-             type: 'number',
-             description: 'Amount of SOL to transfer'
-           }
-         },
-         required: ['recipient', 'amount']
-       }
-     }
-   },
-   {
-     type: 'function',
-     function: {
-       name: 'swapTokens',
-       description: 'Swap between SOL and USDC using Jupiter Exchange',
-       parameters: {
-         type: 'object',
-         properties: {
-           inputToken: {
-             type: 'string',
-             description: 'Input token (SOL or USDC)',
-             enum: ['SOL', 'USDC']
-           },
-           outputToken: {
-             type: 'string',
-             description: 'Output token (SOL or USDC)',
-             enum: ['SOL', 'USDC']
-           },
-           amount: {
-             type: 'number',
-             description: 'Amount of input token to swap'
-           }
-         },
-         required: ['inputToken', 'outputToken', 'amount']
-       }
-     }
-   }
- ];
+  {
+    type: 'function',
+    function: {
+      name: 'checkBalance',
+      description: 'Check SOL balance of a Solana wallet address',
+      parameters: {
+        type: 'object',
+        properties: {
+          address: {
+            type: 'string',
+            description: 'Solana wallet address to check balance for'
+          }
+        },
+        required: ['address']
+      }
+    }
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'transferSol',
+      description: 'Initiate a SOL transfer to another wallet address',
+      parameters: {
+        type: 'object',
+        properties: {
+          recipient: {
+            type: 'string',
+            description: 'Solana wallet address to send SOL to'
+          },
+          amount: {
+            type: 'number',
+            description: 'Amount of SOL to transfer'
+          }
+        },
+        required: ['recipient', 'amount']
+      }
+    }
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'swapTokens',
+      description: 'Swap between SOL and USDC using Jupiter Exchange',
+      parameters: {
+        type: 'object',
+        properties: {
+          inputToken: {
+            type: 'string',
+            description: 'Input token (SOL or USDC)',
+            enum: ['SOL', 'USDC']
+          },
+          outputToken: {
+            type: 'string',
+            description: 'Output token (SOL or USDC)',
+            enum: ['SOL', 'USDC']
+          },
+          amount: {
+            type: 'number',
+            description: 'Amount of input token to swap'
+          }
+        },
+        required: ['inputToken', 'outputToken', 'amount']
+      }
+    }
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'checkCryptoPrice',
+      description: 'Get the current price of any cryptocurrency',
+      parameters: {
+        type: 'object',
+        properties: {
+          symbol: {
+            type: 'string',
+            description: 'The cryptocurrency symbol (e.g., BTC, ETH, SOL)',
+          }
+        },
+        required: ['symbol']
+      }
+    }
+  }
+];
