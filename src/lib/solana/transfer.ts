@@ -16,7 +16,7 @@ export async function handleToolCalls(toolCalls: Array<{ name: string; arguments
     try {
       switch (toolCall.name) {
         case 'transferSol': {
-          let { address, recipient, amount, network = 'devnet' } = toolCall.arguments;
+          let { address, recipient, amount, network } = toolCall.arguments;
           
           // Additional validation
           if (!recipient && !address) {
