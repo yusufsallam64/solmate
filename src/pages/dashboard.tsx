@@ -5,8 +5,7 @@ import { DashboardLayout } from '@/lib/layouts';
 import { ChatInterface } from "@/lib/components/dashboard/ChatInterface";
 import { useSession } from "next-auth/react";
 import { sendMessage } from "@/lib/chat/message-handler";
-
-const DEFAULT_VOICE_ID = "21m00Tcm4TlvDq8ikWAM"; // Default ElevenLabs voice ID
+import { useVoice } from "@/lib/components/voice/VoiceContextProvider";
 
 export default function Dashboard() {
   const [isLoading, setIsLoading] = useState(false);
@@ -21,7 +20,7 @@ export default function Dashboard() {
   const walletAddress = session?.user.walletAddress;
 
   const [useElevenLabs, setUseElevenLabs] = useState(false);
-  const [voiceId, setVoiceId] = useState(DEFAULT_VOICE_ID);
+  const { voiceId } = useVoice();
 
   // Load conversations on mount
   useEffect(() => {
@@ -202,7 +201,7 @@ export default function Dashboard() {
           view={view}
           onViewToggle={handleViewToggle}
           useElevenLabs={useElevenLabs}
-          voiceId={voiceId}
+          voiceId={voiceId ?? "21m00Tcm4TlvDq8ikWAM"}
         />
       </div>
     </DashboardLayout>

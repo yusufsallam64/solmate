@@ -221,7 +221,7 @@ export const ChatInterface = ({
         <AutoplayResponse
           text={lastResponse}
           onComplete={handleSpeakComplete} 
-          voiceId={'cgSgspJ2msm6clMCkdW9'}        />
+          voiceId={ voiceId }        />
       )}
     </div>
   );

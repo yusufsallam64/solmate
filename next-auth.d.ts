@@ -2,6 +2,8 @@ import { DefaultSession } from 'next-auth';
 
 declare module 'next-auth' {
   interface User {
+    voiceId?: string;
+    voiceName?: string;
     walletAddress?: string;
     imageUrl?: string;
   }

@@ -10,6 +10,7 @@ import { ConnectionProvider, WalletProvider } from '@solana/wallet-adapter-react
 import { WalletModalProvider } from '@solana/wallet-adapter-react-ui';
 import { PhantomWalletAdapter, SolflareWalletAdapter, TorusWalletAdapter } from '@solana/wallet-adapter-wallets';
 import { clusterApiUrl, Cluster } from '@solana/web3.js';
+import { VoiceProvider } from "@/lib/components/voice/VoiceContextProvider";
 
 const urbanist = Urbanist({
   subsets: ['latin'],
@@ -51,8 +52,10 @@ export default function App({ Component, pageProps: { session, ...pageProps } }:
         <WalletProvider wallets={wallets} autoConnect>
           <WalletModalProvider>
             <SessionProvider session={session}>
+            <VoiceProvider>
               <Component {...pageProps} />
               <ToastWrapper />
+            </VoiceProvider>
             </SessionProvider>
           </WalletModalProvider>
         </WalletProvider>

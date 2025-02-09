@@ -5,6 +5,7 @@ import SettingsLayout from '@/lib/layouts/SettingsLayout';
 import { UserAvatar } from '@/lib/components/header';
 import Modal from '@/lib/components/ui/Modal';
 import { LoaderCircle, AlertTriangle } from 'lucide-react';
+import VoiceSettings from '@/lib/components/voice/VoiceSettings';
 
 interface UserProfile {
   name: string;
@@ -103,6 +104,8 @@ export default function ProfileSettings() {
                     )}
                   </div>
                 </div>
+
+                <VoiceSettings />
 
                 {/* Danger Zone */}
                 <div className="pt-8 mt-8 border-t border-primary-200/30">
