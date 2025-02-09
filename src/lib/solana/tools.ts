@@ -1,5 +1,5 @@
-// tools.ts
-import { Connection, PublicKey, Transaction, SystemProgram, LAMPORTS_PER_SOL, Commitment, clusterApiUrl } from '@solana/web3.js';
+import { Connection, PublicKey, LAMPORTS_PER_SOL, clusterApiUrl, Transaction, SystemProgram } from '@solana/web3.js';
+import { formatBalanceResponse, ModelFunction, BalanceToolResult } from './natural';
 
 export type ToolDefinition = {
   type: 'function';
@@ -17,11 +17,19 @@ export type ToolDefinition = {
   };
 };
 
-export type ToolCallResult = {
-  tool: string;
-  result?: string;
-  error?: string;
-};
+interface DevnetBalance {
+  solBalance: number;
+  address: string;
+}
+
+interface Asset {
+  token: string;
+  balance: number;
+  value: number;
+  price: number;
+}
+
+export type ToolCallResult = BalanceToolResult;
 
 export const AVAILABLE_TOOLS: ToolDefinition[] = [
   {
@@ -45,7 +53,7 @@ export const AVAILABLE_TOOLS: ToolDefinition[] = [
     type: 'function',
     function: {
       name: 'transferSol',
-      description: 'Transfer SOL from the wallet to a specified address',
+      description: 'Initiate a SOL transfer to another wallet address',
       parameters: {
         type: 'object',
         properties: {
@@ -72,7 +80,7 @@ export const SYSTEM_PROMPT = `You are a Solana wallet assistant for devnet testi
 When a user asks about their balance, use the checkBalance function with their connected wallet address.
 Remember that this is devnet, so only SOL balances are relevant.`;
 
-async function getDevnetBalance(address: string) {
+async function getDevnetBalance(address: string): Promise<DevnetBalance> {
   try {
     const connection = new Connection(clusterApiUrl('devnet'), 'confirmed');
     const pubKey = new PublicKey(address);
@@ -88,8 +96,8 @@ async function getDevnetBalance(address: string) {
   }
 }
 
-export async function handleToolCalls(toolCalls: Array<{ name: string; arguments: Record<string, any> }>): Promise<ToolCallResult[]> {
-  if (!toolCalls?.length) return [];
+export async function handleToolCalls(toolCalls: Array<{ name: string; arguments: Record<string, any> }>, modelFunction: ModelFunction): Promise<string> {
+  if (!toolCalls?.length) throw new Error('No tool calls provided');
 
   const results: ToolCallResult[] = [];
   
@@ -110,12 +118,22 @@ export async function handleToolCalls(toolCalls: Array<{ name: string; arguments
           }
 
           const { solBalance, address: checkedAddress } = await getDevnetBalance(address);
-          
-          const formattedResponse = `Devnet Wallet Balance:\nAddress: ${checkedAddress}\nBalance: ${solBalance.toFixed(4)} SOL`;
+
+          const assets: Asset[] = [{
+            token: 'SOL',
+            balance: solBalance,
+            value: solBalance,
+            price: 1
+          }];
+
+          const formattedBalance = `
+            Devnet Wallet Assets:
+            Address: ${checkedAddress}
+            SOL Balance: ${solBalance.toFixed(4)} SOL`;
 
           results.push({
             tool: toolCall.name,
-            result: formattedResponse
+            result: formattedBalance
           });
           break;
 
@@ -130,49 +148,59 @@ export async function handleToolCalls(toolCalls: Array<{ name: string; arguments
 
           if (amount <= 0) throw new Error('Amount must be greater than 0');
 
+          // Get Phantom wallet instance
           const phantom = (window as any).solana;
-          if (!phantom) throw new Error('Phantom wallet is not available');
+          if (!phantom) {
+            throw new Error('Phantom wallet is not available');
+          }
 
-          const connection = await phantom.connect();
-          const senderPublicKey = connection.publicKey.toString();
-
-          const rpcConnection = new Connection(
+          // Connect to network
+          const connection = new Connection(
             network === 'mainnet' 
               ? (process.env.NEXT_PUBLIC_SOLANA_RPC || 'https://api.mainnet-beta.solana.com')
               : clusterApiUrl(network as 'devnet' | 'testnet'),
-            'confirmed' as Commitment
+            'confirmed'
           );
 
-          const { blockhash, lastValidBlockHeight } = await rpcConnection.getLatestBlockhash();
-          
-          const lamports = amount * LAMPORTS_PER_SOL;
+          // Get sender's public key
+          const sender = await phantom.connect();
+          const senderPublicKey = sender.publicKey;
+
+          // Create transaction
           const transaction = new Transaction().add(
             SystemProgram.transfer({
-              fromPubkey: new PublicKey(senderPublicKey),
+              fromPubkey: senderPublicKey,
               toPubkey: new PublicKey(recipient),
-              lamports,
+              lamports: amount * LAMPORTS_PER_SOL,
             })
           );
 
+          // Get latest blockhash
+          const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash();
           transaction.recentBlockhash = blockhash;
-          transaction.feePayer = new PublicKey(senderPublicKey);
+          transaction.feePayer = senderPublicKey;
 
-          const signedTx = await phantom.signTransaction(transaction);
-          const rawTransaction = signedTx.serialize();
-          const txSignature = await rpcConnection.sendRawTransaction(rawTransaction);
+          // Sign and send transaction
+          try {
+            const signedTx = await phantom.signTransaction(transaction);
+            const rawTransaction = signedTx.serialize();
+            const signature = await connection.sendRawTransaction(rawTransaction);
 
-          await rpcConnection.confirmTransaction({
-            signature: txSignature,
-            blockhash,
-            lastValidBlockHeight
-          }, 'confirmed');
+            // Confirm transaction
+            await connection.confirmTransaction({
+              signature,
+              blockhash,
+              lastValidBlockHeight
+            });
 
-          const formattedResponse = `Successfully transferred ${amount} SOL to ${recipient} on ${network} network. Transaction signature: ${txSignature}`;
-
-          results.push({
-            tool: toolCall.name,
-            result: formattedResponse
-          });
+            const successMessage = `Successfully transferred ${amount} SOL to ${recipient} on ${network}. Transaction signature: ${signature}`;
+            results.push({
+              tool: toolCall.name,
+              result: successMessage
+            });
+          } catch (err) {
+            throw new Error(err instanceof Error ? err.message : 'Transaction failed');
+          }
           break;
         }
 
@@ -190,5 +218,11 @@ export async function handleToolCalls(toolCalls: Array<{ name: string; arguments
     }
   }
 
-  return results;
+  try {
+    const naturalResponse = await formatBalanceResponse(results, modelFunction);
+    return naturalResponse;
+  } catch (error) {
+    console.error('Error formatting natural response:', error);
+    return results[0]?.result || 'Unable to process tool';
+  }
 }
