@@ -77,7 +77,7 @@ export const AVAILABLE_TOOLS: ToolDefinition[] = [
 ];
 
 export const SYSTEM_PROMPT = `You are a Solana wallet assistant for devnet testing. You can help users check their wallet balances and transfer SOL on devnet.
-When a user asks about their balance, use the checkBalance function with their connected wallet address.
+When a user asks about their balance, use the checkBalance function with their connected wallet address. If a user wants to transfer funds to another wallet, use the transferSol function to initiate a transaction.
 Remember that this is devnet, so only SOL balances are relevant.`;
 
 async function getDevnetBalance(address: string): Promise<DevnetBalance> {
@@ -137,92 +137,51 @@ export async function handleToolCalls(toolCalls: Array<{ name: string; arguments
           });
           break;
 
-        case 'transferSol': {
-          const { recipient, amount, network = 'devnet' } = toolCall.arguments;
-          
-          try {
-            new PublicKey(recipient);
-          } catch (e) {
-            throw new Error('Invalid Solana address');
-          }
-
-          if (amount <= 0) throw new Error('Amount must be greater than 0');
-
-          // Get Phantom wallet instance
-          const phantom = (window as any).solana;
-          if (!phantom) {
-            throw new Error('Phantom wallet is not available');
-          }
-
-          // Connect to network
-          const connection = new Connection(
-            network === 'mainnet' 
-              ? (process.env.NEXT_PUBLIC_SOLANA_RPC || 'https://api.mainnet-beta.solana.com')
-              : clusterApiUrl(network as 'devnet' | 'testnet'),
-            'confirmed'
-          );
-
-          // Get sender's public key
-          const sender = await phantom.connect();
-          const senderPublicKey = sender.publicKey;
-
-          // Create transaction
-          const transaction = new Transaction().add(
-            SystemProgram.transfer({
-              fromPubkey: senderPublicKey,
-              toPubkey: new PublicKey(recipient),
-              lamports: amount * LAMPORTS_PER_SOL,
-            })
-          );
-
-          // Get latest blockhash
-          const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash();
-          transaction.recentBlockhash = blockhash;
-          transaction.feePayer = senderPublicKey;
-
-          // Sign and send transaction
-          try {
-            const signedTx = await phantom.signTransaction(transaction);
-            const rawTransaction = signedTx.serialize();
-            const signature = await connection.sendRawTransaction(rawTransaction);
-
-            // Confirm transaction
-            await connection.confirmTransaction({
-              signature,
-              blockhash,
-              lastValidBlockHeight
-            });
-
-            const successMessage = `Successfully transferred ${amount} SOL to ${recipient} on ${network}. Transaction signature: ${signature}`;
+          case 'transferSol': {
+            const { recipient, amount, network = 'devnet' } = toolCall.arguments;
+            
+            try {
+              new PublicKey(recipient);
+            } catch (e) {
+              throw new Error('Invalid Solana address');
+            }
+  
+            if (amount <= 0) throw new Error('Amount must be greater than 0');
+  
+            // Instead of executing the transaction, return a pending transaction
+            const pendingTransaction = {
+              type: 'PENDING_TRANSACTION',
+              recipient,
+              amount,
+              network
+            };
+  
             results.push({
               tool: toolCall.name,
-              result: successMessage
+              result: JSON.stringify(pendingTransaction)
             });
-          } catch (err) {
-            throw new Error(err instanceof Error ? err.message : 'Transaction failed');
+            break;
           }
-          break;
+  
+          default:
+            results.push({
+              tool: toolCall.name,
+              error: 'Unknown tool'
+            });
         }
-
-        default:
-          results.push({
-            tool: toolCall.name,
-            error: 'Unknown tool'
-          });
+      } catch (error) {
+        results.push({
+          tool: toolCall.name,
+          error: error instanceof Error ? error.message : 'Unknown error'
+        });
       }
+    }
+  
+    try {
+      console.log("RESULTS IN TOOLS", results);
+      return JSON.stringify(results);
     } catch (error) {
-      results.push({
-        tool: toolCall.name,
-        error: error instanceof Error ? error.message : 'Unknown error'
-      });
+      console.error('Error formatting natural response:', error);
+      return JSON.stringify(results[0]);
     }
   }
-
-  try {
-    const naturalResponse = await formatBalanceResponse(results, modelFunction);
-    return naturalResponse;
-  } catch (error) {
-    console.error('Error formatting natural response:', error);
-    return results[0]?.result || 'Unable to process tool';
-  }
-}

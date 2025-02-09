@@ -3,16 +3,8 @@ import { Message, Conversation } from "@/lib/db/types";
 import toast from "react-hot-toast";
 import { DashboardLayout } from '@/lib/layouts';
 import { ChatInterface } from "@/lib/components/dashboard/ChatInterface";
-import { GetServerSidePropsContext } from "next";
-import { getServerSession } from "next-auth/next";
-import { authOptions } from "@/pages/api/auth/[...nextauth]";
-import { DatabaseService } from "@/lib/db/service";
 import { useSession } from "next-auth/react";
-
-interface MessageData {
-  role: 'user' | 'assistant' | 'system';
-  content: string;
-}
+import { handleToolCalls } from "@/lib/solana/solana";
 
 export default function Dashboard() {
   const [isLoading, setIsLoading] = useState(false);
@@ -22,7 +14,7 @@ export default function Dashboard() {
   const [currentConversation, setCurrentConversation] = useState<Conversation | undefined>(undefined);
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const { data: session } = useSession();
-  const walletAddress = session?.user.walletAddress;  
+  const walletAddress = session?.user.walletAddress;
 
   // Load conversations on mount
   useEffect(() => {
@@ -42,11 +34,14 @@ export default function Dashboard() {
   }, []);
 
   const handleConversationChange = async (conversationId: string) => {
+    console.log('Changing conversation to:', conversationId);
     try {
       const response = await fetch(`/api/conversations/${conversationId}`);
       if (!response.ok) throw new Error('Failed to fetch conversation');
       
       const data = await response.json();
+      console.log('Loaded conversation data:', data);
+      
       setCurrentConversation(data.conversation);
       setMessages(data.messages);
     } catch (error) {
@@ -56,6 +51,7 @@ export default function Dashboard() {
   };
 
   const handleNewChat = useCallback(() => {
+    console.log('Starting new chat');
     setCurrentConversation(undefined);
     setMessages([]);
     setMessage("");
@@ -72,20 +68,20 @@ export default function Dashboard() {
     const messageContent = message.trim();
     setMessage("");
 
-    // Create the user message object
     const userMessage: Message = {
-      _id: `temp-${Date.now()}` as any, // temporary ID for optimistic update
+      _id: `temp-${Date.now()}` as any,
       role: 'user',
       content: messageContent,
       conversationId: currentConversation?._id || ('' as any),
-      userId: '' as any, // This will be set by the server
+      userId: '' as any,
       createdAt: new Date(),
     };
 
-    // Immediately update the UI with the user's message
     setMessages(prevMessages => [...prevMessages, userMessage]);
   
     try {      
+      console.log('Sending message to API:', messageContent);
+      
       const truncatedUserMessage = { role: 'user' as const, content: messageContent };
 
       const response = await fetch('/api/model/handler', {
@@ -103,9 +99,60 @@ export default function Dashboard() {
       if (!response.ok) {
         throw new Error('Failed to get response from server');
       }
-  
+
       const data = await response.json();
-  
+      
+      if(data.messages && data.messages[data.messages.length - 1].role === 'tool') {
+        const toolArguments = JSON.parse((JSON.parse(data.messages[data.messages.length - 1].content)))[0];
+      
+        console.log('Tool arguments:', toolArguments);
+        const toolArgumentResults = JSON.parse(toolArguments.result);
+
+
+        if(toolArguments.tool === 'transferSol') {
+          try {
+            const response = await handleToolCalls([{
+              name: 'transferSol', 
+              arguments: {
+                recipient: toolArgumentResults.recipient,
+                amount: toolArgumentResults.amount,
+                network: toolArgumentResults.network || 'devnet'
+              }
+            }]);
+
+            console.log("Response from tool call:", response);
+      
+            // Handle the response
+            if (response[0].result) {
+              toast.success('Transaction successful!');
+              // Add success message to chat
+              setMessages(prevMessages => [...prevMessages, {
+                _id: `system-${Date.now()}` as any,
+                role: 'system',
+                content: response[0].result,
+                conversationId: currentConversation?._id || ('' as any),
+                userId: '' as any,
+                createdAt: new Date(),
+              } as Message]);
+            } else if (response[0].error) {
+              throw new Error(response[0].error);
+            }
+          } catch (error) {
+            console.error('Transaction error:', error);
+            toast.error(error instanceof Error ? error.message : 'Transaction failed');
+            // Add error message to chat
+            setMessages(prevMessages => [...prevMessages, {
+              _id: `system-${Date.now()}` as any,
+              role: 'system',
+              content: `Transaction failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
+              conversationId: currentConversation?._id || ('' as any),
+              userId: '' as any,
+              createdAt: new Date(),
+            } as Message]);
+          }
+        }
+      }
+      
       if (currentConversation) {
         setMessages(data.messages);
         setConversations(prevConversations => prevConversations.map(conv => 
@@ -127,7 +174,7 @@ export default function Dashboard() {
         }, ...prevConversations]);
       }
     } catch (error) {
-      console.error('Error:', error);
+      console.error('Error in handleSubmit:', error);
       setError(error instanceof Error ? error.message : 'An error occurred');
       toast.error('Failed to send message');
       setMessages(prevMessages => prevMessages.filter(msg => msg._id !== userMessage._id));
@@ -135,7 +182,7 @@ export default function Dashboard() {
     } finally {
       setIsLoading(false);
     }
-  }, [message, messages, currentConversation, isLoading]);
+  }, [message, messages, currentConversation, isLoading, walletAddress]);
 
   return (
     <DashboardLayout
@@ -157,19 +204,4 @@ export default function Dashboard() {
       </div>
     </DashboardLayout>
   );
-}
-
-export async function getServerSideProps(context: GetServerSidePropsContext) {
-  const session = await getServerSession(context.req, context.res, authOptions);
-
-  if (!session?.user?.email) {
-    return {
-      redirect: {
-        destination: '/auth/signup',
-        permanent: false
-      }
-    };
-  }
-
-  return { props: {} };
 }

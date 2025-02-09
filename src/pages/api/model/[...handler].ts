@@ -82,7 +82,7 @@ async function runModel(messages: any[], tools = AVAILABLE_TOOLS) {
     );
 
     const result = await response.json();
-    console.log('API Response:', JSON.stringify(result, null, 2));
+    console.log('API Response:', JSON.stringify(result));
     
     if (!result.success) {
       console.error('Full API Response:', result);
