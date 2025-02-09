@@ -4,6 +4,7 @@ import { checkBalance } from './wallet-tools/balance';
 import { transferSol } from './wallet-tools/transfer';
 import { swapTokens } from './wallet-tools/swap';
 import { checkCryptoPrice } from './wallet-tools/price';
+import { trackCryptoPrice } from './wallet-tools/tracker';
 import { AVAILABLE_TOOLS, TOKENS } from './wallet-tools/types';
 
 export { AVAILABLE_TOOLS };
@@ -45,7 +46,13 @@ For swaps:
 For price checks:
 1. Use checkCryptoPrice with the requested symbol
 2. Present the price data clearly in USD
-3. Format large numbers with appropriate commas and decimals`;
+3. Format large numbers with appropriate commas and decimals
+
+When setting up price tracking:
+1. Confirm the tracking setup with the user
+2. Include the current price in the response
+3. Clearly state the target conditions being monitored
+`;
 
 export async function handleToolCalls(
   toolCalls: Array<{ name: string; arguments: Record<string, any> }>,
@@ -98,6 +105,15 @@ export async function handleToolCalls(
           const { symbol } = toolCall.arguments;
           if (!symbol) throw new Error('Symbol is required');
           toolResult = await checkCryptoPrice(toolCall.arguments);
+          break;
+        }
+
+        case 'trackCryptoPrice': {
+          const { symbol, targetPrice, condition, volatilityThreshold } = toolCall.arguments;
+          if (!symbol || !targetPrice || !condition) {
+            throw new Error('Symbol, targetPrice, and condition are required');
+          }
+          toolResult = await trackCryptoPrice(toolCall.arguments);
           break;
         }
 

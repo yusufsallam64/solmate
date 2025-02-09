@@ -90,6 +90,28 @@ export async function executeToolResponse(
         };
       }
 
+      case 'trackCryptoPrice': {
+        const { symbol, currentPrice, targetPrice, condition } = toolResult;
+        
+        // Ensure we're working with numbers
+        const formattedCurrentPrice = Number(currentPrice).toFixed(2);
+        const formattedTargetPrice = Number(targetPrice).toFixed(2);
+        
+        const content = `Now tracking ${symbol} price.\nCurrent price: $${formattedCurrentPrice}\nWill alert when price goes ${condition} $${formattedTargetPrice}`;
+        
+        return {
+          success: true,
+          message: {
+            _id: `system-${Date.now()}` as any,
+            role: 'system',
+            content,
+            conversationId: conversationId || ('' as any),
+            userId: '' as any,
+            createdAt: new Date(),
+          }
+        };
+      }
+
       default:
         throw new Error(`Unknown tool: ${toolCall.tool}`);
     }
