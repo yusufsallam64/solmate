@@ -7,6 +7,7 @@ import ViewToggleButton from '@/lib/components/header/ViewToggleButton';
 import { VoiceHandler } from '@/lib/components/voice/VoiceHandler';
 import { AutoplayResponse } from '@/lib/components/voice/AutoplayResponse';
 import toast from 'react-hot-toast';
+import ChatCallToAction from './ChatCallToAction';
 
 interface ChatInterfaceProps {
   currentConversation: Conversation | undefined;
@@ -161,7 +162,11 @@ export const ChatInterface = ({
             ref={messageContainerRef}
             className="h-[calc(100%-4rem)] overflow-y-auto p-6 space-y-4 scrollbar-thin scrollbar-thumb-primary-200/30 scrollbar-track-transparent"
           >
-            {messages?.map((msg, index) => (
+            {
+              !messages?.length ? (
+                <ChatCallToAction />
+            ) : (
+                messages.map((msg, index) => (
               <div
                 key={index}
                 className={`group p-4 rounded-xl backdrop-blur-sm transition-all duration-300 ${
@@ -181,7 +186,7 @@ export const ChatInterface = ({
                   {msg.content}
                 </p>
               </div>
-            ))}
+            )))}
           </div>
           
           {/* Input Section */}
