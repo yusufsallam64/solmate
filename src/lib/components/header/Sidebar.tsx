@@ -39,7 +39,7 @@ const Sidebar: React.FC<SidebarProps> = ({
     <div className={`md:static top-16 bg-background-900/30 backdrop-blur-xl border-r border-primary-200/30 shadow-lg transition-all duration-300 h-[calc(100vh-4rem)] ${isOpen ? 'w-full md:w-72' : 'w-0 overflow-hidden'}`}>
       <div className="h-full flex flex-col min-w-[18rem]">
         <div className="flex-none flex items-center justify-between px-6 py-4 border-b border-primary-200/30 bg-gradient-to-r from-background-900/50 to-background-950/50">
-          <h2 className="text-lg font-title text-secondary-500">Transactions</h2>
+          <h2 className="text-lg font-title text-secondary-500 font-bold">Transactions</h2>
           <button
             onClick={onNewChat}
             className="p-2 rounded-lg bg-accent-500/10 hover:bg-accent-500/20 transition-all duration-200 text-accent-400 hover:text-accent-300 hover:shadow-[0_0_15px_rgba(99,102,241,0.3)] hover:border hover:border-accent-500/30"

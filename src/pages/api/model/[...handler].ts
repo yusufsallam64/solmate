@@ -4,6 +4,7 @@ import { DatabaseService } from "@/lib/db/service";
 import { ObjectId } from 'mongodb';
 import { authenticateRequest } from '../conversations';
 import { AVAILABLE_TOOLS, SYSTEM_PROMPT, handleToolCalls } from '@/lib/solana/tools';
+import { performSemanticSearch, formatSearchResultsAsContext } from '@/lib/services/Search';
 
 if (!process.env.CF_API_TOKEN || !process.env.CF_ACCOUNT_ID) {
   throw new Error("Missing required environment variables: CF_API_TOKEN or CF_ACCOUNT_ID");
@@ -124,7 +125,9 @@ export default async function handler(
     return res.status(401).json({ error: 'Unauthorized' });
   }
 
-  const { interactionMessages, conversationId, walletAddress } = req.body;
+  const { interactionMessages, conversationId, walletAddress, isGuruMode } = req.body;
+
+  console.log("GURU MODE:", isGuruMode);
   if (!interactionMessages?.length) {
     return res.status(400).json({ error: 'Messages are required' });
   }
@@ -148,22 +151,44 @@ export default async function handler(
     }
 
     // Store user's message
+    const userMessage = interactionMessages[interactionMessages.length - 1].content;
     await storeMessage(
       currentConversationId, 
       userId, 
       'user', 
-      interactionMessages[interactionMessages.length - 1].content
+      userMessage
     );
 
     // Prepare messages for the model
     const fullMessages = [
       { role: 'system', content: SYSTEM_PROMPT },
+    ];
+
+    // If guru mode is enabled, perform semantic search and add context
+    if (isGuruMode) {
+      try {
+        const searchResults = await performSemanticSearch(userMessage);
+        if (searchResults.length > 0) {
+          const contextString = formatSearchResultsAsContext(searchResults);
+          fullMessages.push({
+            role: 'system',
+            content: `Here is some relevant context for the user's question:\n\n${contextString}\n\nPlease use this information to provide a more informed response.`
+          });
+        }
+      } catch (error) {
+        console.error('Error in semantic search:', error);
+        // Continue without context if search fails
+      }
+    }
+
+    // Add conversation messages and wallet address
+    fullMessages.push(
       ...interactionMessages.map(msg => ({
         role: msg.role,
         content: String(msg.content)
       })),
       { role: 'system', content: `Connected wallet address: ${walletAddress}` }
-    ];
+    );
 
     // Get initial response
     const initialResponse = await runModel(fullMessages);
@@ -211,3 +236,4 @@ export default async function handler(
     return res.status(500).json({ error: 'Internal server error' });
   }
 }
+

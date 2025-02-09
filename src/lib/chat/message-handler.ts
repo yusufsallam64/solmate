@@ -76,7 +76,8 @@ export const sendMessage = async (
   messageContent: string,
   messages: Message[],
   currentConversationId?: string,
-  walletAddress?: string
+  walletAddress?: string,
+  isGuruMode: boolean = false
 ): Promise<MessageResponse> => {
   const response = await fetch('/api/model/handler', {
     method: 'POST',
@@ -86,7 +87,8 @@ export const sendMessage = async (
         ? [...messages, { role: 'user', content: messageContent }]
         : [{ role: 'user', content: messageContent }],
       conversationId: currentConversationId,
-      walletAddress
+      walletAddress,
+      isGuruMode
     }),
   });
 

@@ -16,12 +16,13 @@ interface ChatInterfaceProps {
   setMessage: (message: string) => void;
   error: string;
   isLoading: boolean;
-  handleSubmit: (e: React.FormEvent, messageOverride?: string) => Promise<void>;
+  handleSubmit: (e: React.FormEvent, messageOverride?: string, isGuruMode?: boolean) => Promise<void>;
   view: 'chat' | 'voice';
   onViewToggle: () => void;
   useElevenLabs: boolean;
   voiceId: string;
 }
+
 
 export const ChatInterface = ({
   currentConversation,
@@ -192,12 +193,12 @@ export const ChatInterface = ({
           {/* Input Section */}
           {view !== 'voice' ? (
             <MessageInput
-              message={message}
-              setMessage={setMessage}
-              error={error}
-              isLoading={isLoading}
-              onSubmit={handleSubmit}
-            />
+            message={message}
+            setMessage={setMessage}
+            error={error}
+            isLoading={isLoading}
+            onSubmit={handleSubmit}  // This will now accept isGuruMode
+          />
           ) : (
             <div className="h-16 flex items-center justify-center bg-background-950/30">
               {isListening ? (
