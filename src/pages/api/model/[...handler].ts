@@ -130,28 +130,13 @@ export default async function handler(
   }
 
   try {
-    const fullMessages = [
-      { 
-        role: 'system', 
-        content: SYSTEM_PROMPT 
-      },
-      ...interactionMessages.map(msg => ({
-        role: msg.role,
-        content: String(msg.content)
-      })),
-      { 
-        role: 'system', 
-        content: `Connected wallet address: ${walletAddress}` 
-      }
-    ];
-
     let currentConversationId: ObjectId;
 
+    // Handle conversation ID creation
     if (!conversationId) {
-      const title = await generateTitle(interactionMessages[0].content);
       currentConversationId = await DatabaseService.createConversation({
         userId: new ObjectId(userId),
-        title,
+        title: 'Wallet Interaction',
         status: 'active'
       });
     } else {
@@ -170,62 +155,53 @@ export default async function handler(
       interactionMessages[interactionMessages.length - 1].content
     );
 
-    // Get initial assistant response
+    // Prepare messages for the model
+    const fullMessages = [
+      { role: 'system', content: SYSTEM_PROMPT },
+      ...interactionMessages.map(msg => ({
+        role: msg.role,
+        content: String(msg.content)
+      })),
+      { role: 'system', content: `Connected wallet address: ${walletAddress}` }
+    ];
+
+    // Get initial response
     const initialResponse = await runModel(fullMessages);
 
-    // Only store assistant's initial response if it's not null
-    if (initialResponse.response) {
-      await storeMessage(
-        currentConversationId,
-        userId,
-        'assistant',
-        initialResponse.response
-      );
-    }
-
-    let finalResponse = initialResponse;
+    let responseToStore: string;
 
     // Handle tool calls if present
     if (initialResponse.tool_calls?.length) {
       const toolResults = await handleToolCalls(initialResponse.tool_calls, runModel);
-      
-      // Store tool results as message
-      await storeMessage(
-        currentConversationId,
-        userId,
-        'tool',
-        JSON.stringify(toolResults)
-      );
-
-      // Get final response after tool execution
-      const updatedMessages = [
-        ...fullMessages,
-        ...(initialResponse.response ? [{ role: 'assistant', content: initialResponse.response }] : []),
-        { role: 'tool', content: JSON.stringify(toolResults) }
-      ];
-
-      finalResponse = await runModel(updatedMessages);
-
-      // Store assistant's final response after tool execution if not null
-      if (finalResponse.response) {
-        await storeMessage(
-          currentConversationId,
-          userId,
-          'assistant',
-          finalResponse.response
-        );
+      if (toolResults) {
+        responseToStore = toolResults;
       }
     }
 
-    // Get all messages for the conversation
-    const storedMessages = await DatabaseService.getConversationMessages(currentConversationId);
-    const conversation = await DatabaseService.getConversation(currentConversationId);
+    // If no tool results, use the model's response
+    if (!responseToStore && initialResponse.response) {
+      responseToStore = initialResponse.response;
+    }
 
+    // Fallback response if neither tool results nor model response
+    if (!responseToStore) {
+      responseToStore = "I'm here to help with your Solana wallet. Is there something specific you'd like to know?";
+    }
+
+    // Store the assistant's response
+    await storeMessage(
+      currentConversationId,
+      userId,
+      'assistant',
+      responseToStore
+    );
+
+    // Return the response
     return res.status(200).json({
-      response: finalResponse.response || '',  // Ensure we always return a string
-      messages: storedMessages,
-      conversation,
-      usage: finalResponse.usage
+      response: responseToStore,
+      messages: await DatabaseService.getConversationMessages(currentConversationId),
+      conversation: await DatabaseService.getConversation(currentConversationId),
+      usage: initialResponse.usage
     });
 
   } catch (error) {
