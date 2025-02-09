@@ -47,7 +47,7 @@ const SettingsLayout: React.FC<SettingsLayoutProps> = ({ children }) => {
             >
               <Logo size={32} />
               <span className="hidden sm:inline font-bold bg-gradient-to-r from-accent-400 via-accent-500 to-secondary-300 text-transparent bg-clip-text">
-                SolanaChat
+                SolMate
               </span>
             </button>
           </div>

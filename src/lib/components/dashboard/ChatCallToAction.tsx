@@ -12,7 +12,7 @@ const ChatCallToAction = () => {
       
       <div className="space-y-6 max-w-lg">
         <div>
-          <h2 className="text-2xl font-title text-accent-400 mb-3 font-bold">Welcome to SolanaChat</h2>
+          <h2 className="text-2xl font-title text-accent-400 mb-3 font-bold">Welcome to SolMate</h2>
           <p className="text-primary-200 text-lg">Experience a new way to interact with Solana</p>
         </div>
         

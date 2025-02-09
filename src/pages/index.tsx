@@ -129,7 +129,7 @@ export default function Splash() {
             <div className="flex items-center gap-3">
               <Logo size={40} />
               <span className="text-2xl font-bold bg-gradient-to-r from-accent-400 via-accent-500 to-secondary-300 text-transparent bg-clip-text font-title">
-                SolanaChat
+                SolMate
               </span>
             </div>
             <div className="flex items-center gap-4">
