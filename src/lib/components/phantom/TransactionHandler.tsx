@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Connection, PublicKey, LAMPORTS_PER_SOL, Transaction, SystemProgram, clusterApiUrl } from '@solana/web3.js';
+import toast from 'react-hot-toast';
 
 interface PendingTransaction {
   type: 'PENDING_TRANSACTION';
@@ -50,7 +51,13 @@ const TransactionHandler: React.FC<TransactionHandlerProps> = ({
             phantom: (window as any).phantom,
             solana: (window as any).phantom?.solana
           });
-          throw new Error('Phantom wallet is not installed');
+          toast.error('Phantom wallet is not installed');
+          onTransactionComplete({
+            success: false,
+            signature: null,
+            error: 'Phantom wallet is not installed'
+          });
+          return;
         }
 
         // Connect to network
@@ -73,7 +80,13 @@ const TransactionHandler: React.FC<TransactionHandlerProps> = ({
           });
         } catch (err) {
           console.error('Wallet connection error:', err);
-          throw new Error('Failed to connect to wallet');
+          toast.error('Failed to connect to wallet');
+          onTransactionComplete({
+            success: false,
+            signature: null,
+            error: 'Failed to connect to wallet'
+          });
+          return;
         }
 
         // Create transaction
@@ -115,6 +128,7 @@ const TransactionHandler: React.FC<TransactionHandlerProps> = ({
           });
           
           setStatus('Transaction successful!');
+          toast.success('Transaction completed successfully');
           onTransactionComplete({
             success: true,
             signature: signed.signature,
@@ -123,9 +137,22 @@ const TransactionHandler: React.FC<TransactionHandlerProps> = ({
         } catch (err) {
           console.error('Transaction signing error:', err);
           if ((err as any).message.includes('User rejected')) {
-            throw new Error('Transaction rejected by user');
+            toast.error('Transaction Refused');
+            onTransactionComplete({
+              success: false,
+              signature: null,
+              error: 'Transaction Refused'
+            });
+            return;
           }
-          throw err;
+          // Handle other errors
+          const errorMessage = err instanceof Error ? err.message : 'Unknown error';
+          toast.error(`Transaction failed: ${errorMessage}`);
+          onTransactionComplete({
+            success: false,
+            signature: null,
+            error: errorMessage
+          });
         }
       } catch (error) {
         console.error('Transaction failed:', {
@@ -136,6 +163,7 @@ const TransactionHandler: React.FC<TransactionHandlerProps> = ({
         
         const errorMessage = error instanceof Error ? error.message : 'Unknown error';
         setStatus(`Transaction failed: ${errorMessage}`);
+        toast.error(`Transaction failed: ${errorMessage}`);
         onTransactionComplete({
           success: false,
           signature: null,

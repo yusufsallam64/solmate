@@ -63,6 +63,7 @@ export const handleModelResponse = async (
 
   } catch (error) {
     console.error('Error handling model response:', error);
+    toast.error(error instanceof Error ? error.message : 'Error processing response');
     return {
       messages: data.messages || [],
       conversation: data.conversation,
