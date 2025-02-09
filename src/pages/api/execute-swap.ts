@@ -13,8 +13,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.status(400).json({ error: 'Missing required parameters' });
     }
 
-    // Mainnet-optimized settings
-    const swapResponse = await fetch('https://api.jup.ag/swap/v1/swap', {
+    // Call Jupiter API to execute swap
+    const swapResponse = await fetch('https://quote-api.jup.ag/v6/swap', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -25,10 +25,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         // Production settings
         wrapUnwrapSOL: true,
         dynamicComputeUnitLimit: true,
-        dynamicSlippage: true, // Use dynamic slippage for better prices
+        dynamicSlippage: true,
         prioritizationFeeLamports: {
           priorityLevelWithMaxLamports: {
-            maxLamports: 100000, // 0.0001 SOL max for priority fees
+            maxLamports: 100000,
             priorityLevel: "high",
             global: false
           }
@@ -46,16 +46,20 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     const swapData = await swapResponse.json();
-    console.log('Jupiter response:', JSON.stringify(swapData, null, 2));
 
+    // Log full response for debugging
+    console.log('Jupiter swap response:', JSON.stringify(swapData, null, 2));
+
+    // Handle simulation errors
     if (swapData.simulationError) {
       console.error('Simulation error:', swapData.simulationError);
       return res.status(400).json({ 
-        error: 'Transaction simulation failed. Please check your balances and try again.',
+        error: 'Transaction simulation failed',
         details: swapData.simulationError
       });
     }
 
+    // Return necessary transaction data
     return res.status(200).json({
       swapTransaction: swapData.swapTransaction,
       lastValidBlockHeight: swapData.lastValidBlockHeight,
