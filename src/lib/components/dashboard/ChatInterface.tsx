@@ -18,6 +18,8 @@ interface ChatInterfaceProps {
   handleSubmit: (e: React.FormEvent, messageOverride?: string) => Promise<void>;
   view: 'chat' | 'voice';
   onViewToggle: () => void;
+  useElevenLabs: boolean;
+  voiceId: string;
 }
 
 export const ChatInterface = ({
@@ -30,29 +32,27 @@ export const ChatInterface = ({
   handleSubmit,
   view,
   onViewToggle,
+  useElevenLabs,
+  voiceId,
 }: ChatInterfaceProps) => {
   const messageContainerRef = useRef<HTMLDivElement>(null);
   const [isListening, setIsListening] = useState(false);
-  const [isSpeaking, setIsSpeaking] = useState(false);
-  const [lastResponse, setLastResponse] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [lastResponse, setLastResponse] = useState<string | null>(null);
+  const [isSpeaking, setIsSpeaking] = useState(false);
 
   const handleVoiceMessage = useCallback(async (transcript: string) => {
     console.log('Processing voice message:', transcript);
     if (!transcript.trim() || isProcessing) return;
-  
+
     try {
       setIsProcessing(true);
       
-      // Set the message in state for UI feedback
-      setMessage(transcript);
-      
-      // Create basic form event
       const submitEvent = {
         preventDefault: () => {},
       } as React.FormEvent;
       
-      // Pass the transcript directly to handleSubmit
+      setMessage(transcript);
       await handleSubmit(submitEvent, transcript);
       
       console.log('LLM processing complete');
@@ -63,6 +63,26 @@ export const ChatInterface = ({
       setIsProcessing(false);
     }
   }, [handleSubmit, setMessage, isProcessing]);
+
+  // Handle new messages for voice output
+  useEffect(() => {
+    if (messages?.length && useElevenLabs) {
+      const lastMessage = messages[messages.length - 1];
+      if (lastMessage.role === 'assistant') {
+        console.log('New assistant response:', lastMessage.content);
+        setLastResponse(lastMessage.content);
+      }
+    }
+  }, [messages, useElevenLabs]);
+
+  // Reset states when view changes
+  useEffect(() => {
+    if (view !== 'voice') {
+      setIsListening(false);
+      setIsProcessing(false);
+      setLastResponse(null);
+    }
+  }, [view]);
 
   const handleSpeakComplete = useCallback(() => {
     console.log('Speech completed');
@@ -95,17 +115,6 @@ export const ChatInterface = ({
   useEffect(() => {
     console.log('Message or loading state changed:', { message, isLoading });
   }, [message, isLoading]);
-
-  // Reset states when view changes
-  useEffect(() => {
-    if (view !== 'voice') {
-      setIsListening(false);
-      setIsSpeaking(false);
-      setLastResponse(null);
-      setIsProcessing(false);
-      window.speechSynthesis?.cancel();
-    }
-  }, [view]);
 
   return (
     <div className="h-full flex flex-col bg-background-900/30 backdrop-blur-xl rounded-2xl border border-primary-200/30 shadow-lg overflow-hidden max-w-4xl mx-auto">
@@ -211,8 +220,8 @@ export const ChatInterface = ({
       {isSpeaking && lastResponse && view === 'voice' && (
         <AutoplayResponse
           text={lastResponse}
-          onComplete={handleSpeakComplete}
-        />
+          onComplete={handleSpeakComplete} 
+          voiceId={'cgSgspJ2msm6clMCkdW9'}        />
       )}
     </div>
   );

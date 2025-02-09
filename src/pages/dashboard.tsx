@@ -6,6 +6,8 @@ import { ChatInterface } from "@/lib/components/dashboard/ChatInterface";
 import { useSession } from "next-auth/react";
 import { sendMessage } from "@/lib/chat/message-handler";
 
+const DEFAULT_VOICE_ID = "21m00Tcm4TlvDq8ikWAM"; // Default ElevenLabs voice ID
+
 export default function Dashboard() {
   const [isLoading, setIsLoading] = useState(false);
   const [message, setMessage] = useState("");
@@ -17,6 +19,9 @@ export default function Dashboard() {
   const [isInitializingVoice, setIsInitializingVoice] = useState(false);
   const { data: session } = useSession();
   const walletAddress = session?.user.walletAddress;
+
+  const [useElevenLabs, setUseElevenLabs] = useState(false);
+  const [voiceId, setVoiceId] = useState(DEFAULT_VOICE_ID);
 
   // Load conversations on mount
   useEffect(() => {
@@ -151,35 +156,32 @@ export default function Dashboard() {
   }, [message, messages, currentConversation, isLoading, walletAddress]);  
 
   const handleViewToggle = useCallback(async () => {
-    // If we're already initializing, don't do anything
     if (isInitializingVoice) return;
 
     const newView = view === 'chat' ? 'voice' : 'chat';
     console.log('Attempting to toggle view from:', view, 'to:', newView);
 
-    // If switching to voice mode, initialize it first
     if (newView === 'voice') {
       setIsInitializingVoice(true);
       try {
-        // Try to initialize voice capabilities
         const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
         stream.getTracks().forEach(track => track.stop());
-        
-        // If we got here, permissions were granted
         setView(newView);
+        setUseElevenLabs(true); // Enable ElevenLabs when switching to voice mode
       } catch (error) {
         console.error('Failed to initialize voice mode:', error);
         toast.error('Could not enable voice mode. Please check microphone permissions.');
-        // Don't change the view if initialization failed
         return;
       } finally {
         setIsInitializingVoice(false);
       }
     } else {
-      // If switching to chat mode, just do it
       setView(newView);
+      setUseElevenLabs(false); // Disable ElevenLabs when switching to chat mode
     }
   }, [view, isInitializingVoice]);
+
+
 
   return (
     <DashboardLayout
@@ -199,6 +201,8 @@ export default function Dashboard() {
           handleSubmit={handleSubmit}
           view={view}
           onViewToggle={handleViewToggle}
+          useElevenLabs={useElevenLabs}
+          voiceId={voiceId}
         />
       </div>
     </DashboardLayout>
