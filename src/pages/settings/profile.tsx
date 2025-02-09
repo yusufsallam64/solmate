@@ -82,11 +82,6 @@ export default function ProfileSettings() {
             <div className="p-6">
               <div className="space-y-8">
                 <div className="flex items-start gap-6">
-                  <div className="relative">
-                    <div className="absolute -inset-0.5 bg-accent-500/20 rounded-full blur opacity-50" />
-                    <UserAvatar session={session} size={1.4} />
-                  </div>
-
                   <div className="flex flex-col space-y-2">
                     {profile?.name && (
                       <div>
