@@ -1,45 +1,26 @@
 // lib/services/PriceTracker.ts
 import axios from 'axios';
-import { EventEmitter } from 'events';
 import NodeCache from 'node-cache';
+
+const cache = new NodeCache({ stdTTL: 60 });
 
 interface PriceTarget {
   symbol: string;
   targetPrice: number;
   condition: 'above' | 'below';
-  volatilityThreshold?: number;
   userId: string;
+  email: string;
 }
 
-interface PriceUpdate {
-  symbol: string;
-  price: number;
-  timestamp: string;
-  change?: number;
-}
-
-export class PriceTracker extends EventEmitter {
-  private targets: Map<string, PriceTarget[]> = new Map();
-  private cache: NodeCache;
-  private intervals: Map<string, NodeJS.Timeout> = new Map();
-  private lastPrices: Map<string, number> = new Map();
-  
-  constructor() {
-    super();
-    this.cache = new NodeCache({ stdTTL: 60 }); // 60 second cache
-  }
+class PriceTracker {
+  private targets: PriceTarget[] = [];
+  private checkInterval: NodeJS.Timeout | null = null;
 
   async fetchPrice(symbol: string): Promise<number> {
-    const cachedPrice = this.cache.get<number>(symbol);
-    if (cachedPrice !== undefined) {
-      return cachedPrice;
-    }
-
     try {
-      const formattedSymbol = symbol.includes('-USD') ? 
-        symbol.toUpperCase() : 
+      const formattedSymbol = symbol.includes('-USD') ?
+        symbol.toUpperCase() :
         `${symbol.toUpperCase()}-USD`;
-
       const response = await axios.get(
         `https://query1.finance.yahoo.com/v8/finance/chart/${formattedSymbol}`,
         {
@@ -49,118 +30,65 @@ export class PriceTracker extends EventEmitter {
           }
         }
       );
-
       const price = response.data?.chart?.result?.[0]?.meta?.regularMarketPrice;
       if (!price) {
         throw new Error('No price data available');
       }
-
-      this.cache.set(symbol, price);
       return price;
     } catch (error) {
-      if (axios.isAxiosError(error)) {
-        if (error.response?.status === 429) {
-          throw new Error('Rate limit exceeded');
-        }
-        throw new Error(`Failed to fetch price: ${error.message}`);
-      }
+      console.error('Error fetching price:', error);
       throw error;
     }
   }
 
-  addTarget(target: PriceTarget): void {
-    const targets = this.targets.get(target.symbol) || [];
-    targets.push(target);
-    this.targets.set(target.symbol, targets);
-    
-    // Start tracking if not already tracking this symbol
-    if (!this.intervals.has(target.symbol)) {
-      this.startTracking(target.symbol);
+  async sendEmail(email: string, symbol: string, price: number, targetPrice: number, condition: string) {
+    try {
+      const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
+      await axios.post(`${baseUrl}/api/email/send`, {
+        recipientEmail: email,
+        subject: `Price Alert: ${symbol} has hit ${condition} $${targetPrice}`,
+        body: `The price of ${symbol} is now $${price}, reaching your target of ${condition} $${targetPrice}.`,
+      });
+      console.log(`Email sent to ${email} for ${symbol}`);
+    } catch (error) {
+      console.error('Error sending email:', error);
     }
   }
 
-  removeTarget(symbol: string, userId: string): void {
-    const targets = this.targets.get(symbol) || [];
-    const filteredTargets = targets.filter(t => t.userId !== userId);
-    
-    if (filteredTargets.length === 0) {
-      this.targets.delete(symbol);
-      this.stopTracking(symbol);
-    } else {
-      this.targets.set(symbol, filteredTargets);
+  addTarget(target: PriceTarget) {
+    console.log('Adding price target:', target);
+    this.targets.push(target);
+    if (!this.checkInterval) {
+      this.startChecking();
     }
   }
 
-  private startTracking(symbol: string): void {
-    const checkPrice = async () => {
-      try {
-        const price = await this.fetchPrice(symbol);
-        const lastPrice = this.lastPrices.get(symbol);
-        const change = lastPrice ? ((price - lastPrice) / lastPrice) * 100 : 0;
-        
-        const update: PriceUpdate = {
-          symbol,
-          price,
-          timestamp: new Date().toISOString(),
-          change
-        };
-
-        this.emit('price-update', update);
-        
-        // Check targets
-        const targets = this.targets.get(symbol) || [];
-        for (const target of targets) {
-          if (this.checkPriceTarget(target, price, change)) {
-            this.emit('target-hit', { target, price, change });
+  private startChecking() {
+    console.log('Starting price checks');
+    this.checkInterval = setInterval(async () => {
+      const currentTargets = [...this.targets];
+      for (const target of currentTargets) {
+        try {
+          const price = await this.fetchPrice(target.symbol);
+          console.log(`Checking ${target.symbol}: Current price $${price}, Target $${target.targetPrice} ${target.condition}`);
+          const isHit = target.condition === 'above' ?
+            price >= target.targetPrice :
+            price <= target.targetPrice;
+          if (isHit) {
+            console.log(`Target hit for ${target.symbol}!`);
+            this.targets = this.targets.filter(t => t !== target);
+            await this.sendEmail(target.email, target.symbol, price, target.targetPrice, target.condition);
           }
+        } catch (error) {
+          console.error(`Error checking price for ${target.symbol}:`, error);
         }
-
-        this.lastPrices.set(symbol, price);
-      } catch (error) {
-        this.emit('error', { symbol, error });
       }
-    };
-
-    // Initial check
-    checkPrice();
-    
-    // Set up interval
-    const interval = setInterval(checkPrice, 30000); // Check every 30 seconds
-    this.intervals.set(symbol, interval);
-  }
-
-  private stopTracking(symbol: string): void {
-    const interval = this.intervals.get(symbol);
-    if (interval) {
-      clearInterval(interval);
-      this.intervals.delete(symbol);
-      this.lastPrices.delete(symbol);
-    }
-  }
-
-  private checkPriceTarget(target: PriceTarget, price: number, change: number): boolean {
-    // Check price conditions
-    if (target.condition === 'above' && price >= target.targetPrice) {
-      return true;
-    }
-    if (target.condition === 'below' && price <= target.targetPrice) {
-      return true;
-    }
-    
-    // Check volatility if threshold is set
-    if (target.volatilityThreshold && Math.abs(change) >= target.volatilityThreshold) {
-      return true;
-    }
-    
-    return false;
-  }
-
-  stopAll(): void {
-    for (const symbol of this.intervals.keys()) {
-      this.stopTracking(symbol);
-    }
-    this.targets.clear();
-    this.lastPrices.clear();
+      if (this.targets.length === 0 && this.checkInterval) {
+        console.log('No more targets, stopping checks');
+        clearInterval(this.checkInterval);
+        this.checkInterval = null;
+      }
+    }, 1000);
   }
 }
 
